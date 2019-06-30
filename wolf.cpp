@@ -2,6 +2,7 @@
 //
 
 #include "framework.h"
+#include <stdint.h>
 #include "wolf.h"
 
 #define MAX_LOADSTRING 100
@@ -11,14 +12,16 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+global_variable HWND WindowHandle;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void UpdateWin32Window(HDC deviceContext, int x, int y, int w, int h);
+void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, int h);
 void Win32ResizeBuffer(int w, int h);
+void RenderWeirdBkg(int OffsetX, int OffsetY);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -44,16 +47,34 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WOLF));
 
 	MSG msg;
+	bool Running = true;
 
-	// Main message loop:
-	while (GetMessage(&msg, nullptr, 0, 0))
+		int xOffset = 0;
+	while (Running)
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		// Main message loop:
+		while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
+			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+			{
+				if (msg.message == WM_QUIT)
+					Running = false;
+
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		} 
+
+		RECT clientRect;
+		GetClientRect(WindowHandle, &clientRect);
+		RenderWeirdBkg(xOffset,0);
+		int WinH = clientRect.right - clientRect.left;
+		int WinW = clientRect.bottom - clientRect.top;
+		HDC context = GetDC(WindowHandle);
+		UpdateWin32Window(context, &clientRect, 0, 0, WinW, WinH);
+		xOffset++;
 	}
+
 
 	return (int)msg.wParam;
 }
@@ -100,16 +121,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
-	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	WindowHandle = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-	if (!hWnd)
+	if (!WindowHandle)
 	{
 		return FALSE;
 	}
 
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
+	ShowWindow(WindowHandle, nCmdShow);
+	UpdateWindow(WindowHandle);
 
 	return TRUE;
 }
@@ -159,7 +180,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 		RECT clientRect;
 		GetClientRect(hWnd, &clientRect);
-		UpdateWin32Window(hdc, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+		UpdateWin32Window(hdc, &clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -196,34 +218,85 @@ global_variable BITMAPINFO BitmapInfo;
 global_variable void* BitmapMemory;
 global_variable HBITMAP BitmapHandle;
 global_variable HDC BitmapDeviceContext;
+global_variable int BitmapWidth;
+global_variable int BitmapHeight;
+global_variable int Bpp = 4;
 
-void UpdateWin32Window(HDC deviceContext, int x, int y, int w, int h)
+void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, int h)
 {
-	StretchDIBits(deviceContext, x, y, w, h, x, y, w, h, BitmapMemory, &BitmapInfo, DIB_RGB_COLORS,SRCCOPY);
 
-} 
+	int WindowWidth = winRect->right - winRect->left;
+	int WindowHeight = winRect->bottom - winRect->top;
+	StretchDIBits(
+		deviceContext,
+		//x, y, w, h,
+		//x, y, w, h,
+		0, 0, BitmapWidth, BitmapHeight,
+		0, 0, WindowWidth, WindowHeight,
+		BitmapMemory, &BitmapInfo,
+		DIB_RGB_COLORS, SRCCOPY);
+
+}
+
+void RenderWeirdBkg(int OffsetX, int OffsetY)
+{
+	UINT8* Pixel;
+	UINT8* Row = (UINT8*)BitmapMemory;
+	int Pitch = Bpp * BitmapWidth;
+
+	for (int y = 0; y < BitmapHeight; y++)
+	{
+		Pixel = (UINT8*)Row;
+		for (int x = 0; x < BitmapWidth; x++)
+		{
+			*Pixel = 0;
+			Pixel++;
+
+			*Pixel = (UINT8)(x + OffsetX);
+			Pixel++;
+
+			*Pixel = (UINT8)(y + OffsetY);
+			Pixel++;
+
+			*Pixel = 0;
+			Pixel++;
+		}
+
+		Row += Pitch;
+	}
+}
 
 void Win32ResizeBuffer(int w, int h)
 {
+	BitmapWidth = w;
+	BitmapHeight = h;
 	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-	BitmapInfo.bmiHeader.biWidth = w;
-	BitmapInfo.bmiHeader.biHeight = h;
+	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
+	BitmapInfo.bmiHeader.biHeight = -BitmapHeight;
 	BitmapInfo.bmiHeader.biPlanes = 1;
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-	if(BitmapHandle)
-		DeleteObject(BitmapHandle);
-	else 
-		BitmapDeviceContext = CreateCompatibleDC(0);
 
-	BitmapHandle = CreateDIBSection(
-		BitmapDeviceContext,
-		&BitmapInfo,
-		DIB_RGB_COLORS,
-		&BitmapMemory,
-		0, 0);
+	//if(BitmapHandle)
+	//	DeleteObject(BitmapHandle);
+	//else 
+	//	BitmapDeviceContext = CreateCompatibleDC(0);
+	int BitmapSizeMem = (w * h) * Bpp;
 
-	ReleaseDC(0, BitmapDeviceContext);
+	if (BitmapMemory)
+		VirtualFree(BitmapMemory, NULL, MEM_RELEASE);
+
+	//BitmapHandle = CreateDIBSection(
+	//	BitmapDeviceContext,
+	//	&BitmapInfo,
+	//	DIB_RGB_COLORS,
+	//	&BitmapMemory,
+	//	0, 0);
+
+	//ReleaseDC(0, BitmapDeviceContext);
+
+	BitmapMemory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
+	RenderWeirdBkg(0, 0);
 }
 
