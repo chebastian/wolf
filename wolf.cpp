@@ -72,6 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
 		UpdateWin32Window(context, &clientRect, 0, 0, WinW, WinH);
+		ReleaseDC(0, context);
 		xOffset++;
 	}
 
@@ -276,26 +277,12 @@ void Win32ResizeBuffer(int w, int h)
 	BitmapInfo.bmiHeader.biPlanes = 1;
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-
-	//if(BitmapHandle)
-	//	DeleteObject(BitmapHandle);
-	//else 
-	//	BitmapDeviceContext = CreateCompatibleDC(0);
+ 
 	int BitmapSizeMem = (w * h) * Bpp;
 
 	if (BitmapMemory)
 		VirtualFree(BitmapMemory, NULL, MEM_RELEASE);
-
-	//BitmapHandle = CreateDIBSection(
-	//	BitmapDeviceContext,
-	//	&BitmapInfo,
-	//	DIB_RGB_COLORS,
-	//	&BitmapMemory,
-	//	0, 0);
-
-	//ReleaseDC(0, BitmapDeviceContext);
-
+ 
 	BitmapMemory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
 	RenderWeirdBkg(0, 0);
 }
