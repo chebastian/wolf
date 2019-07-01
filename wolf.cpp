@@ -20,11 +20,12 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, int h);
+void UpdateWin32Window(HDC deviceContext, RECT winRect, int x, int y, int w, int h);
 void Win32ResizeBuffer(int w, int h);
 void RenderWeirdBkg(int OffsetX, int OffsetY);
 void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+void Win32UpdateKeyState();
 
 global_variable glm::vec2 positionVec;
 
@@ -77,7 +78,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		int WinH = clientRect.right - clientRect.left;
 		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
-		UpdateWin32Window(context, &clientRect, 0, 0, WinW, WinH);
+		UpdateWin32Window(context, clientRect, 0, 0, WinW, WinH);
 		ReleaseDC(0, context);
 		xOffset++;
 	}
@@ -174,6 +175,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	{
+		Win32UpdateKeyState();
+	}break;
+
 	case WM_SIZE:
 	{
 		RECT clientRect;
@@ -187,7 +194,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 		RECT clientRect;
 		GetClientRect(hWnd, &clientRect);
-		UpdateWin32Window(hdc, &clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+		UpdateWin32Window(hdc, clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
 
 		EndPaint(hWnd, &ps);
 	}
@@ -229,11 +236,11 @@ global_variable int BitmapWidth;
 global_variable int BitmapHeight;
 global_variable int Bpp = 4;
 
-void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, int h)
+void UpdateWin32Window(HDC deviceContext, RECT winRect, int x, int y, int w, int h)
 {
 
-	int WindowWidth = winRect->right - winRect->left;
-	int WindowHeight = winRect->bottom - winRect->top;
+	int WindowWidth = winRect.right - winRect.left;
+	int WindowHeight = winRect.bottom - winRect.top;
 	StretchDIBits(
 		deviceContext,
 		//x, y, w, h,
@@ -254,7 +261,7 @@ void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
 	int GreenOffset = 1;
 	int BlueOffset = 0;
 
-	Row += (Pitch * y); 
+	Row += (Pitch * y);
 	Pixel = (UINT32*)Row;
 	Pixel += (x);
 	*Pixel = ((r << 16) | (g << 8) | b);
@@ -329,5 +336,11 @@ void Win32ResizeBuffer(int w, int h)
 
 	BitmapMemory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
 	RenderWeirdBkg(0, 0);
+}
+
+void Win32UpdateKeyState()
+{
+	auto stateW = GetAsyncKeyState('w');
+	auto stateS = GetAsyncKeyState('s');
 }
 
