@@ -49,7 +49,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
-void Win32ResizeBuffer(Win32OffscreenBuffer* buffer,int w, int h);
+void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
@@ -82,6 +82,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	MSG msg;
 	bool Running = true;
+
+	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
 
 	int xOffset = 0;
 	while (Running)
@@ -208,9 +210,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 	{
-		RECT clientRect;
-		GetClientRect(hWnd, &clientRect);
-		Win32ResizeBuffer(&OffscreenBuffer, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
 	}break;
 	case WM_PAINT:
 	{
@@ -251,17 +250,29 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
-} 
+}
 
 
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
 {
+	int correctedW = 0;
+	int correctedH = 0;
+	if (w > h)
+	{ 
+		correctedW = h * (16.0 / 9.0);
+		correctedH = h;
+	}
+	else {
+		correctedW = h * (16.0 / 9.0);
+		correctedH = h;
+	}
+
 	StretchDIBits(
 		deviceContext,
 		//x, y, w, h,
 		//x, y, w, h,
-		0, 0, buffer->Width,buffer->Height,
-		0, 0, w,h,
+		0, 0, correctedW, correctedH,
+		0, 0, buffer->Width, buffer->Height,
 		buffer->Memory, &buffer->Info,
 		DIB_RGB_COLORS, SRCCOPY);
 
