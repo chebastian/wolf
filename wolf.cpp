@@ -27,6 +27,20 @@ struct Win32OffscreenBuffer
 	int Pitch = Width * Bpp;
 };
 
+struct WindowDimension
+{
+	int Width;
+	int Height;
+};
+
+
+WindowDimension GetWindowDimension(HWND hWnd)
+{
+	RECT theRect;
+	GetClientRect(hWnd, &theRect);
+	return WindowDimension{ theRect.right - theRect.left, theRect.bottom - theRect.top };
+}
+
 global_variable Win32OffscreenBuffer OffscreenBuffer;
 
 // Forward declarations of functions included in this code module:
@@ -34,7 +48,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, RECT winRect, int x, int y, int w, int h);
+void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
 void Win32ResizeBuffer(Win32OffscreenBuffer* buffer,int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
@@ -85,14 +99,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		RECT clientRect;
-		GetClientRect(WindowHandle, &clientRect);
-		RenderWeirdBkg(&OffscreenBuffer, xOffset, 0);
+		RenderWeirdBkg(&OffscreenBuffer, xOffset, xOffset);
 		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
-		int WinH = clientRect.right - clientRect.left;
-		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
-		UpdateWin32Window(&OffscreenBuffer, context, clientRect, 0, 0, WinW, WinH);
+		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
+		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 		xOffset++;
 	}
@@ -206,9 +217,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code that uses hdc here...
-		RECT clientRect;
-		GetClientRect(hWnd, &clientRect);
-		UpdateWin32Window(&OffscreenBuffer, hdc, clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+
+		auto dim = GetWindowDimension(WindowHandle);
+		UpdateWin32Window(&OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
 
 		EndPaint(hWnd, &ps);
 	}
@@ -243,17 +254,14 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 } 
 
 
-void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, RECT winRect, int x, int y, int w, int h)
+void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
 {
-
-	int WindowWidth = winRect.right - winRect.left;
-	int WindowHeight = winRect.bottom - winRect.top;
 	StretchDIBits(
 		deviceContext,
 		//x, y, w, h,
 		//x, y, w, h,
 		0, 0, buffer->Width,buffer->Height,
-		0, 0, WindowWidth, WindowHeight,
+		0, 0, w,h,
 		buffer->Memory, &buffer->Info,
 		DIB_RGB_COLORS, SRCCOPY);
 
