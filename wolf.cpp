@@ -22,6 +22,8 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, int h);
 void Win32ResizeBuffer(int w, int h);
 void RenderWeirdBkg(int OffsetX, int OffsetY);
+void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -49,7 +51,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	bool Running = true;
 
-		int xOffset = 0;
+	int xOffset = 0;
 	while (Running)
 	{
 		// Main message loop:
@@ -63,11 +65,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-		} 
+		}
 
 		RECT clientRect;
 		GetClientRect(WindowHandle, &clientRect);
-		RenderWeirdBkg(xOffset,0);
+		RenderWeirdBkg(xOffset, 0);
+		Win32DrawRect(10, 0, 80, 40, 255, 0, 255);
 		int WinH = clientRect.right - clientRect.left;
 		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
@@ -239,6 +242,44 @@ void UpdateWin32Window(HDC deviceContext, RECT* winRect, int x, int y, int w, in
 
 }
 
+void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
+{
+	UINT32* Pixel;
+	UINT8* Row = (UINT8*)BitmapMemory;
+	int Pitch = Bpp * BitmapWidth;
+	int RedOffset = 2;
+	int GreenOffset = 1;
+	int BlueOffset = 0;
+
+	Row += (Pitch * y); 
+	Pixel = (UINT32*)Row;
+	Pixel += (Bpp * x);
+	*Pixel = ((r << 16) | (g << 8) | b);
+	Pixel++;
+}
+
+void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
+{
+	UINT32* Pixel;
+	UINT8* Row = (UINT8*)BitmapMemory;
+	int Pitch = Bpp * BitmapWidth;
+
+	Row += Pitch * OffsetY;
+
+	for (auto y = 0; y < h; y++)
+	{
+		Pixel = (UINT32*)Row;
+		Pixel += (Bpp * OffsetX);
+		for (auto x = 0; x < w; x++)
+		{
+			*Pixel = ((r << 16) | (g << 8) | b);
+			Pixel++;
+		}
+
+		Row += Pitch;
+	}
+}
+
 void RenderWeirdBkg(int OffsetX, int OffsetY)
 {
 	UINT8* Pixel;
@@ -277,12 +318,12 @@ void Win32ResizeBuffer(int w, int h)
 	BitmapInfo.bmiHeader.biPlanes = 1;
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
- 
+
 	int BitmapSizeMem = (w * h) * Bpp;
 
 	if (BitmapMemory)
 		VirtualFree(BitmapMemory, NULL, MEM_RELEASE);
- 
+
 	BitmapMemory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
 	RenderWeirdBkg(0, 0);
 }
