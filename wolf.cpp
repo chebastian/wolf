@@ -15,16 +15,30 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 global_variable HWND WindowHandle;
 
+struct Win32OffscreenBuffer
+{
+	BITMAPINFO Info;
+	void* Memory;
+	HBITMAP Handle;
+	HDC DeviceContext;
+	int Width;
+	int Height;
+	int Bpp = 4;
+	int Pitch = Width * Bpp;
+};
+
+global_variable Win32OffscreenBuffer OffscreenBuffer;
+
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void UpdateWin32Window(HDC deviceContext, RECT winRect, int x, int y, int w, int h);
-void Win32ResizeBuffer(int w, int h);
-void RenderWeirdBkg(int OffsetX, int OffsetY);
-void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b);
-void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, RECT winRect, int x, int y, int w, int h);
+void Win32ResizeBuffer(Win32OffscreenBuffer* buffer,int w, int h);
+void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
+void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32UpdateKeyState();
 
 global_variable glm::vec2 positionVec;
@@ -73,12 +87,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		RECT clientRect;
 		GetClientRect(WindowHandle, &clientRect);
-		RenderWeirdBkg(xOffset, 0);
-		Win32DrawRect(20, 100, 80, 40, 255, 0, 255);
+		RenderWeirdBkg(&OffscreenBuffer, xOffset, 0);
+		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
 		int WinH = clientRect.right - clientRect.left;
 		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
-		UpdateWin32Window(context, clientRect, 0, 0, WinW, WinH);
+		UpdateWin32Window(&OffscreenBuffer, context, clientRect, 0, 0, WinW, WinH);
 		ReleaseDC(0, context);
 		xOffset++;
 	}
@@ -185,7 +199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		RECT clientRect;
 		GetClientRect(hWnd, &clientRect);
-		Win32ResizeBuffer(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+		Win32ResizeBuffer(&OffscreenBuffer, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
 	}break;
 	case WM_PAINT:
 	{
@@ -194,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 		RECT clientRect;
 		GetClientRect(hWnd, &clientRect);
-		UpdateWin32Window(hdc, clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+		UpdateWin32Window(&OffscreenBuffer, hdc, clientRect, clientRect.left, clientRect.top, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
 
 		EndPaint(hWnd, &ps);
 	}
@@ -226,17 +240,10 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
-}
+} 
 
-global_variable BITMAPINFO BitmapInfo;
-global_variable void* BitmapMemory;
-global_variable HBITMAP BitmapHandle;
-global_variable HDC BitmapDeviceContext;
-global_variable int BitmapWidth;
-global_variable int BitmapHeight;
-global_variable int Bpp = 4;
 
-void UpdateWin32Window(HDC deviceContext, RECT winRect, int x, int y, int w, int h)
+void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, RECT winRect, int x, int y, int w, int h)
 {
 
 	int WindowWidth = winRect.right - winRect.left;
@@ -245,36 +252,34 @@ void UpdateWin32Window(HDC deviceContext, RECT winRect, int x, int y, int w, int
 		deviceContext,
 		//x, y, w, h,
 		//x, y, w, h,
-		0, 0, BitmapWidth, BitmapHeight,
+		0, 0, buffer->Width,buffer->Height,
 		0, 0, WindowWidth, WindowHeight,
-		BitmapMemory, &BitmapInfo,
+		buffer->Memory, &buffer->Info,
 		DIB_RGB_COLORS, SRCCOPY);
 
 }
 
-void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
+void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b)
 {
 	UINT32* Pixel;
-	UINT8* Row = (UINT8*)BitmapMemory;
-	int Pitch = Bpp * BitmapWidth;
+	UINT8* Row = (UINT8*)buffer->Memory;
 	int RedOffset = 2;
 	int GreenOffset = 1;
 	int BlueOffset = 0;
 
-	Row += (Pitch * y);
+	Row += (buffer->Pitch * y);
 	Pixel = (UINT32*)Row;
 	Pixel += (x);
 	*Pixel = ((r << 16) | (g << 8) | b);
 	Pixel++;
 }
 
-void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
+void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
 {
 	UINT32* Pixel;
-	UINT8* Row = (UINT8*)BitmapMemory;
-	int Pitch = Bpp * BitmapWidth;
+	UINT8* Row = (UINT8*)buffer->Memory;;
 
-	Row += Pitch * OffsetY;
+	Row += buffer->Pitch * OffsetY;
 
 	for (auto y = 0; y < h; y++)
 	{
@@ -286,20 +291,19 @@ void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UIN
 			Pixel++;
 		}
 
-		Row += Pitch;
+		Row += buffer->Pitch;
 	}
 }
 
-void RenderWeirdBkg(int OffsetX, int OffsetY)
+void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
 	UINT8* Pixel;
-	UINT8* Row = (UINT8*)BitmapMemory;
-	int Pitch = Bpp * BitmapWidth;
+	UINT8* Row = (UINT8*)buffer->Memory;
 
-	for (int y = 0; y < BitmapHeight; y++)
+	for (int y = 0; y < buffer->Height; y++)
 	{
 		Pixel = (UINT8*)Row;
-		for (int x = 0; x < BitmapWidth; x++)
+		for (int x = 0; x < buffer->Width; x++)
 		{
 			*Pixel = 0;
 			Pixel++;
@@ -314,28 +318,29 @@ void RenderWeirdBkg(int OffsetX, int OffsetY)
 			Pixel++;
 		}
 
-		Row += Pitch;
+		Row += buffer->Pitch;
 	}
 }
 
-void Win32ResizeBuffer(int w, int h)
+void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h)
 {
-	BitmapWidth = w;
-	BitmapHeight = h;
-	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
-	BitmapInfo.bmiHeader.biHeight = -BitmapHeight;
-	BitmapInfo.bmiHeader.biPlanes = 1;
-	BitmapInfo.bmiHeader.biBitCount = 32;
-	BitmapInfo.bmiHeader.biCompression = BI_RGB;
+	buffer->Width = w;
+	buffer->Height = h;
+	buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
+	buffer->Info.bmiHeader.biWidth = buffer->Width;
+	buffer->Info.bmiHeader.biHeight = -buffer->Height;
+	buffer->Info.bmiHeader.biPlanes = 1;
+	buffer->Info.bmiHeader.biBitCount = 32;
+	buffer->Info.bmiHeader.biCompression = BI_RGB;
+	buffer->Pitch = buffer->Width * buffer->Bpp;
 
-	int BitmapSizeMem = (w * h) * Bpp;
+	int BitmapSizeMem = (w * h) * buffer->Bpp;
 
-	if (BitmapMemory)
-		VirtualFree(BitmapMemory, NULL, MEM_RELEASE);
+	if (buffer->Memory)
+		VirtualFree(buffer->Memory, NULL, MEM_RELEASE);
 
-	BitmapMemory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
-	RenderWeirdBkg(0, 0);
+	buffer->Memory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
+	RenderWeirdBkg(&OffscreenBuffer, 0, 0);
 }
 
 void Win32UpdateKeyState()
