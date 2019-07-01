@@ -70,7 +70,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		RECT clientRect;
 		GetClientRect(WindowHandle, &clientRect);
 		RenderWeirdBkg(xOffset, 0);
-		Win32DrawRect(10, 0, 80, 40, 255, 0, 255);
+		Win32DrawRect(20, 100, 80, 40, 255, 0, 255);
 		int WinH = clientRect.right - clientRect.left;
 		int WinW = clientRect.bottom - clientRect.top;
 		HDC context = GetDC(WindowHandle);
@@ -269,7 +269,7 @@ void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UIN
 	for (auto y = 0; y < h; y++)
 	{
 		Pixel = (UINT32*)Row;
-		Pixel += (Bpp * OffsetX);
+		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
 			*Pixel = ((r << 16) | (g << 8) | b);
