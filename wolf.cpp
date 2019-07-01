@@ -3,6 +3,7 @@
 
 #include "framework.h"
 #include <stdint.h>
+#include <glm.hpp>
 #include "wolf.h"
 
 #define MAX_LOADSTRING 100
@@ -24,6 +25,8 @@ void Win32ResizeBuffer(int w, int h);
 void RenderWeirdBkg(int OffsetX, int OffsetY);
 void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+
+global_variable glm::vec2 positionVec;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -253,7 +256,7 @@ void Win32SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
 
 	Row += (Pitch * y); 
 	Pixel = (UINT32*)Row;
-	Pixel += (Bpp * x);
+	Pixel += (x);
 	*Pixel = ((r << 16) | (g << 8) | b);
 	Pixel++;
 }
