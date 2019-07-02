@@ -203,10 +203,11 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 		//OutputDebugString(std::to_wstring(d).c_str());
 
+		float wallH = 200;
 
 		float h = (std::max(d, 1.0f) / 9.0f);
 
-		Win32DrawRect(buffer, i, 100-(0.5f*h*100), 1, h*100, 255 * d, 255 * d, 255 * d);
+		Win32DrawRect(buffer, i, 200-(0.5f*h*wallH), 1, h*wallH, 255 * d, 255 * d, 255 * d);
 		//Caster.Direction = glm::rotate(Caster.Direction, ang);
 		//Caster.Direction = { 0,-1 };
 		//Caster.Origin = { 3,3 };
