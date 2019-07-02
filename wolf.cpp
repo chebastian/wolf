@@ -4,6 +4,7 @@
 #include "framework.h"
 #include <stdint.h>
 #include <glm.hpp>
+#include <gtx/rotate_vector.hpp>
 #include "wolf.h"
 #include <string>
 #include <Xinput.h>
@@ -18,6 +19,26 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 global_variable HWND WindowHandle;
+
+
+struct Raycaster {
+	glm::vec2 Origin;
+	glm::vec2 Direction;
+	int Fov;
+	int Near;
+	int Far;
+};
+
+global_variable Raycaster Caster;
+
+char level[] = {
+	1,1,1,1,1,1,1,1,1,
+	1,0,0,0,0,0,0,0,1,
+	1,0,0,1,0,1,0,0,1,
+	1,0,0,0,0,0,0,0,1,
+	1,0,0,1,0,0,1,0,1,
+	1,1,1,1,1,1,1,1,1,
+};
 
 bool IsKeyDown(char key)
 {
@@ -62,6 +83,7 @@ void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam,bool isDown);
 void InitializeKeys();
 
@@ -115,6 +137,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
 		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
+		Win32DrawGame(&OffscreenBuffer);
 		HDC context = GetDC(WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
@@ -130,7 +153,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	return (int)msg.wParam;
 }
 
-
+void Win32DrawGame(Win32OffscreenBuffer* buffer)
+{ 
+	int res = 200;
+	Caster.Direction.x = 0; Caster.Direction.y = -1;
+	for (int i = 0; i < res; i++)
+	{ 
+		auto ang = (float)i / 90.0f;
+		auto newAng = glm::rotate(Caster.Direction, ang);
+	}
+} 
 
 //
 //  FUNCTION: MyRegisterClass()
