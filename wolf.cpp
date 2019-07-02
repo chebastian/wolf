@@ -6,13 +6,14 @@
 #include <glm.hpp>
 #include <gtx/rotate_vector.hpp>
 #include "wolf.h"
+#include <cmath>
 #include <string>
 #include <Xinput.h>
 #pragma comment(lib,"xinput.lib")
 
 #define MAX_LOADSTRING 100
 #define global_variable static
-global_variable char* Keys; 
+global_variable char* Keys;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
@@ -22,8 +23,8 @@ global_variable HWND WindowHandle;
 
 
 struct Raycaster {
-	glm::vec2 Origin;
-	glm::vec2 Direction;
+	glm::vec2 Origin{ 2,2 };
+	glm::vec2 Direction{ 0,-1 };
 	int Fov;
 	int Near;
 	int Far;
@@ -31,14 +32,22 @@ struct Raycaster {
 
 global_variable Raycaster Caster;
 
-char level[] = {
-	1,1,1,1,1,1,1,1,1,
-	1,0,0,0,0,0,0,0,1,
-	1,0,0,1,0,1,0,0,1,
-	1,0,0,0,0,0,0,0,1,
-	1,0,0,1,0,0,1,0,1,
-	1,1,1,1,1,1,1,1,1,
+struct LevelData {
+
+	int Width = 9;
+	int Height = 6; 
+
+	char data[54] = {
+		1,1,1,1,1,1,1,1,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,1,0,1,0,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,1,0,0,1,0,1,
+		1,1,1,1,1,1,1,1,1,
+	};
 };
+
+global_variable LevelData Level;
 
 bool IsKeyDown(char key)
 {
@@ -84,7 +93,7 @@ void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
-void Win32UpdateKeyState(WPARAM wParam,bool isDown);
+void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void InitializeKeys();
 
 global_variable glm::vec2 positionVec;
@@ -133,7 +142,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-		} 
+		}
 
 		RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
 		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
@@ -143,26 +152,99 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 
-		xOffset = IsKeyDown('d') ? xOffset + 1 : xOffset;
-		xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		yOffset = IsKeyDown('s') ? yOffset + 1 : yOffset;
-		yOffset = IsKeyDown('w') ? yOffset - 1 : yOffset;
+		//xOffset = IsKeyDown('d') ? xOffset + 1 : xOffset;
+		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
+		//yOffset = IsKeyDown('s') ? yOffset + 1 : yOffset;
+		//yOffset = IsKeyDown('w') ? yOffset - 1 : yOffset;
+
+		if (IsKeyDown('w'))
+			Caster.Origin.y += Caster.Direction.y * 0.02f;
+
+		if (IsKeyDown('s'))
+			Caster.Origin.y += -Caster.Direction.y * 0.02f;
+
+		if (IsKeyDown('a'))
+			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * 0.02f);
+		if (IsKeyDown('d'))
+			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * -0.02f);
+
+		xOffset += Caster.Direction.x * 2;
+		yOffset += Caster.Direction.y * 2;
+		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
 	}
 
 
 	return (int)msg.wParam;
 }
 
+float RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
-{ 
-	int res = 200;
-	Caster.Direction.x = 0; Caster.Direction.y = -1;
+{
+	float res = 400.0f;
+	float fov = glm::radians(90.0f);
+	float step = fov / res;
+
+	//pixWidth : 800
+	//90deg fov
+	//stepsize = fov/pixWidth: 
+	// 
+	glm::vec2 dir = Caster.Direction;
 	for (int i = 0; i < res; i++)
-	{ 
-		auto ang = (float)i / 90.0f;
-		auto newAng = glm::rotate(Caster.Direction, ang);
+	{
+		dir = glm::rotate(dir, step);
+		//dir = glm::normalize(dir);
+
+		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		//OutputDebugString(std::to_wstring(d).c_str());
+
+
+		int h = 200 - (100-std::fmin(d, 10));
+
+		Win32DrawRect(buffer, i, 100, 1,h,255*d,255*d,255*d);
+		//Caster.Direction = glm::rotate(Caster.Direction, ang);
+		//Caster.Direction = { 0,-1 };
+		//Caster.Origin = { 3,3 };
+		//OutputDebugString(std::to_wstring(Caster.Direction.x).c_str());
+		//OutputDebugString(L"\n");
+		//OutputDebugString(std::to_wstring(Caster.Direction.y).c_str());
+		//OutputDebugString(L"\n");
+		//float d = RayDistance(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 	}
-} 
+
+	float done = 1.0f;
+}
+
+int ReadTileAt(float x, float y)
+{
+	int idx = y * Level.Width + x;
+	return Level.data[idx];
+}
+
+global_variable int SOLID_TILE = 1;
+global_variable int OPEN_TILE = 0;
+float RayDistance(float px, float py, float dx, float dy)
+{
+	glm::vec2 pos;
+	pos.x = px;
+	pos.y = py;
+
+	glm::vec2 orig;
+	orig.x = px;
+	orig.y = py;
+
+	glm::vec2 dir{ dx,dy };
+
+	float stepLength = 0.002f;
+	bool hit = false;
+	while (!hit)
+	{
+		pos.x += dir.x * stepLength;
+		pos.y += dir.y * stepLength;
+		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE; 
+	}
+ 
+	return glm::distance(pos, orig);
+}
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -251,11 +333,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 
 	case WM_KEYDOWN:
-		Win32UpdateKeyState(wParam,true);
+		Win32UpdateKeyState(wParam, true);
 		break;
 	case WM_KEYUP:
-		Win32UpdateKeyState(wParam,false);
-		break; 
+		Win32UpdateKeyState(wParam, false);
+		break;
 
 	case WM_SIZE:
 	{
@@ -422,15 +504,15 @@ void printInput(WPARAM wParam)
 	GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
 	TextOut(context, textX, 10, &tchar, 1);
 	textX += charWidth;
-	text += tchar; 
+	text += tchar;
 	ReleaseDC(WindowHandle, context);
 }
 
 void InitializeKeys()
-{ 
+{
 	if (Keys)
 		delete Keys;
-	Keys = new char[25]; 
+	Keys = new char[25];
 	for (int i = 0; i < 25; i++)
 		Keys[i] = false;
 }
@@ -441,20 +523,20 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	auto idx = tchar - 'A';
 
 	if (idx >= 0)
-	{ 
+	{
 		Keys[idx] = isDown;
-	} 
+	}
 
 	switch (tchar)
-	{ 
-		case 'W':
-		{
-			printInput(wParam);
-		}break;
-		case 'S':
-		{
+	{
+	case 'W':
+	{
+		printInput(wParam);
+	}break;
+	case 'S':
+	{
 
-		}break;
+	}break;
 	}
 }
 
