@@ -6,7 +6,7 @@
 #include <glm.hpp>
 #include <gtx/rotate_vector.hpp>
 #include "wolf.h"
-#include <cmath>
+#include <algorithm>
 #include <string>
 #include <Xinput.h>
 #pragma comment(lib,"xinput.lib")
@@ -23,7 +23,7 @@ global_variable HWND WindowHandle;
 
 
 struct Raycaster {
-	glm::vec2 Origin{ 2,2 };
+	glm::vec2 Origin{ 5,5 };
 	glm::vec2 Direction{ 0,-1 };
 	int Fov;
 	int Near;
@@ -35,14 +35,14 @@ global_variable Raycaster Caster;
 struct LevelData {
 
 	int Width = 9;
-	int Height = 6; 
+	int Height = 6;
 
 	char data[54] = {
 		1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,1,0,1,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,1,0,0,1,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,1,1,
 		1,1,1,1,1,1,1,1,1,
 	};
 };
@@ -94,6 +94,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
+int ReadTileAt(float x, float y);
 void InitializeKeys();
 
 global_variable glm::vec2 positionVec;
@@ -158,10 +159,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		//yOffset = IsKeyDown('w') ? yOffset - 1 : yOffset;
 
 		if (IsKeyDown('w'))
-			Caster.Origin.y += Caster.Direction.y * 0.02f;
-
+		{ 
+			Caster.Origin.y += Caster.Direction.y * 0.02f; 
+			Caster.Origin.x += Caster.Direction.x * 0.02f; 
+		}
 		if (IsKeyDown('s'))
-			Caster.Origin.y += -Caster.Direction.y * 0.02f;
+		{
+			Caster.Origin.y += -Caster.Direction.y * 0.02f; 
+			Caster.Origin.x += Caster.Direction.x * 0.02f; 
+		}
 
 		if (IsKeyDown('a'))
 			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * 0.02f);
@@ -198,25 +204,36 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		//OutputDebugString(std::to_wstring(d).c_str());
 
 
-		int h = 200 - (100-std::fmin(d, 10));
+		float h = (std::max(d, 1.0f) / 9.0f);
 
-		Win32DrawRect(buffer, i, 100, 1,h,255*d,255*d,255*d);
+		Win32DrawRect(buffer, i, 100-(0.5f*h*100), 1, h*100, 255 * d, 255 * d, 255 * d);
 		//Caster.Direction = glm::rotate(Caster.Direction, ang);
 		//Caster.Direction = { 0,-1 };
 		//Caster.Origin = { 3,3 };
 		//OutputDebugString(std::to_wstring(Caster.Direction.x).c_str());
 		//OutputDebugString(L"\n");
-		//OutputDebugString(std::to_wstring(Caster.Direction.y).c_str());
-		//OutputDebugString(L"\n");
 		//float d = RayDistance(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 	}
+	Win32DrawRect(buffer, 100, 300, 12, 12, 255, 0, 0);
+	Win32DrawRect(buffer, 100 + Caster.Direction.x * 20, 300 + Caster.Direction.y * 20, 12, 12, 255, 0, 0);
+	OutputDebugString(L"x:");
+	OutputDebugString(std::to_wstring(Caster.Origin.x).c_str());
+	OutputDebugString(L"y:");
+	OutputDebugString(std::to_wstring(Caster.Origin.y).c_str());
+	OutputDebugString(L"\n");
+	OutputDebugString(std::to_wstring(ReadTileAt(Caster.Origin.x, Caster.Origin.y)).c_str());
+	int idx = (int)Caster.Origin.y * Level.Width + (int)Caster.Origin.x;
+	OutputDebugString(L"idx:");
+	OutputDebugString(std::to_wstring(idx).c_str());
+	OutputDebugString(L"\n");
+	OutputDebugString(L"\n");
 
 	float done = 1.0f;
 }
 
 int ReadTileAt(float x, float y)
 {
-	int idx = y * Level.Width + x;
+	int idx = (int)y * Level.Width + (int)x;
 	return Level.data[idx];
 }
 
@@ -240,9 +257,9 @@ float RayDistance(float px, float py, float dx, float dy)
 	{
 		pos.x += dir.x * stepLength;
 		pos.y += dir.y * stepLength;
-		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE; 
+		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
 	}
- 
+
 	return glm::distance(pos, orig);
 }
 
