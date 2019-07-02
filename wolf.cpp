@@ -5,15 +5,24 @@
 #include <stdint.h>
 #include <glm.hpp>
 #include "wolf.h"
+#include <string>
+#include <Xinput.h>
+#pragma comment(lib,"xinput.lib")
 
 #define MAX_LOADSTRING 100
 #define global_variable static
+global_variable char* Keys; 
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 global_variable HWND WindowHandle;
+
+bool IsKeyDown(char key)
+{
+	return Keys[key - 'a'];
+}
 
 struct Win32OffscreenBuffer
 {
@@ -53,7 +62,8 @@ void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
-void Win32UpdateKeyState();
+void Win32UpdateKeyState(WPARAM wParam,bool isDown);
+void InitializeKeys();
 
 global_variable glm::vec2 positionVec;
 
@@ -84,8 +94,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	bool Running = true;
 
 	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
+	InitializeKeys();
 
 	int xOffset = 0;
+	int yOffset = 0;
 	while (Running)
 	{
 		// Main message loop:
@@ -99,15 +111,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-		}
+		} 
 
-		RenderWeirdBkg(&OffscreenBuffer, xOffset, xOffset);
+		RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
 		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
 		HDC context = GetDC(WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
-		xOffset++;
+
+		xOffset = IsKeyDown('d') ? xOffset + 1 : xOffset;
+		xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
+		yOffset = IsKeyDown('s') ? yOffset + 1 : yOffset;
+		yOffset = IsKeyDown('w') ? yOffset - 1 : yOffset;
 	}
 
 
@@ -203,10 +219,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 
 	case WM_KEYDOWN:
+		Win32UpdateKeyState(wParam,true);
+		break;
 	case WM_KEYUP:
-	{
-		Win32UpdateKeyState();
-	}break;
+		Win32UpdateKeyState(wParam,false);
+		break; 
 
 	case WM_SIZE:
 	{
@@ -258,7 +275,7 @@ void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, i
 	int correctedW = 0;
 	int correctedH = 0;
 	if (w > h)
-	{ 
+	{
 		correctedW = h * (16.0 / 9.0);
 		correctedH = h;
 	}
@@ -362,9 +379,50 @@ void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h)
 	RenderWeirdBkg(&OffscreenBuffer, 0, 0);
 }
 
-void Win32UpdateKeyState()
+global_variable int textX = 0;
+global_variable std::string text;
+
+void printInput(WPARAM wParam)
 {
-	auto stateW = GetAsyncKeyState('w');
-	auto stateS = GetAsyncKeyState('s');
+	TCHAR tchar = wParam;
+	HDC context = GetDC(WindowHandle);
+	int charWidth = 0;
+	GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
+	TextOut(context, textX, 10, &tchar, 1);
+	textX += charWidth;
+	text += tchar; 
+	ReleaseDC(WindowHandle, context);
+}
+
+void InitializeKeys()
+{ 
+	if (Keys)
+		delete Keys;
+	Keys = new char[25]; 
+	for (int i = 0; i < 25; i++)
+		Keys[i] = false;
+}
+
+void Win32UpdateKeyState(WPARAM wParam, bool isDown)
+{
+	TCHAR tchar = wParam;
+	auto idx = tchar - 'A';
+
+	if (idx >= 0)
+	{ 
+		Keys[idx] = isDown;
+	} 
+
+	switch (tchar)
+	{ 
+		case 'W':
+		{
+			printInput(wParam);
+		}break;
+		case 'S':
+		{
+
+		}break;
+	}
 }
 
