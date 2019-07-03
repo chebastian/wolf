@@ -180,7 +180,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		yOffset += Caster.Direction.y * 2;
 		DrawLevel(&OffscreenBuffer, Level, 600, 10);
 		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		Win32ClearBuffer(&OffscreenBuffer);
+		//Win32ClearBuffer(&OffscreenBuffer);
 	}
 	return (int)msg.wParam;
 }
@@ -216,6 +216,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float step = fov / res;
 
 	glm::vec2 dir = Caster.Direction;
+	dir = glm::rotate(dir, -fov * 0.5f);
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
@@ -227,6 +228,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
+		Win32DrawRect(buffer,i,200,1,wallH,0,0,0);
 		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * wallHeightScale, 255 * wallHeightScale, 255 *wallHeightScale );
 	}
 
