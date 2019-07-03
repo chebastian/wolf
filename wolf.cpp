@@ -60,8 +60,8 @@ struct Win32OffscreenBuffer
 	void* Memory;
 	HBITMAP Handle;
 	HDC DeviceContext;
-	int Width;
-	int Height;
+	int Width = 800;
+	int Height = 600;
 	int Bpp = 4;
 	int Pitch = Width * Bpp;
 };
@@ -90,6 +90,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
 void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
+void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
@@ -145,7 +146,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
+		//RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
 		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
 		Win32DrawGame(&OffscreenBuffer);
 		HDC context = GetDC(WindowHandle);
@@ -172,6 +173,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
 		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
+		Win32ClearBuffer(&OffscreenBuffer);
 	}
 
 
@@ -446,6 +448,11 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 		Row += buffer->Pitch;
 	}
 }
+void Win32ClearBuffer(Win32OffscreenBuffer* buffer)
+{
+	int sz = buffer->Width * buffer->Height;
+	memset(buffer->Memory, 0, sz*sizeof(UINT32));
+}
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
@@ -492,7 +499,6 @@ void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h)
 		VirtualFree(buffer->Memory, NULL, MEM_RELEASE);
 
 	buffer->Memory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
-	RenderWeirdBkg(&OffscreenBuffer, 0, 0);
 }
 
 global_variable int textX = 0;
