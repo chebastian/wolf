@@ -152,12 +152,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
-
-		//xOffset = IsKeyDown('d') ? xOffset + 1 : xOffset;
-		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		//yOffset = IsKeyDown('s') ? yOffset + 1 : yOffset;
-		//yOffset = IsKeyDown('w') ? yOffset - 1 : yOffset;
-
+ 
 		if (IsKeyDown('w'))
 		{ 
 			Caster.Origin.y += Caster.Direction.y * 0.02f; 
@@ -170,9 +165,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		if (IsKeyDown('a'))
-			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * 0.02f);
-		if (IsKeyDown('d'))
 			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * -0.02f);
+		if (IsKeyDown('d'))
+			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * 0.02f);
 
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
@@ -190,31 +185,20 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float fov = glm::radians(90.0f);
 	float step = fov / res;
 
-	//pixWidth : 800
-	//90deg fov
-	//stepsize = fov/pixWidth: 
-	// 
 	glm::vec2 dir = Caster.Direction;
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
-		//dir = glm::normalize(dir);
 
 		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		//OutputDebugString(std::to_wstring(d).c_str());
 
 		float wallH = 200;
 
 		float h = (std::max(d, 1.0f) / 9.0f);
 
 		Win32DrawRect(buffer, i, 200-(0.5f*h*wallH), 1, h*wallH, 255 * d, 255 * d, 255 * d);
-		//Caster.Direction = glm::rotate(Caster.Direction, ang);
-		//Caster.Direction = { 0,-1 };
-		//Caster.Origin = { 3,3 };
-		//OutputDebugString(std::to_wstring(Caster.Direction.x).c_str());
-		//OutputDebugString(L"\n");
-		//float d = RayDistance(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 	}
+
 	Win32DrawRect(buffer, 100, 300, 12, 12, 255, 0, 0);
 	Win32DrawRect(buffer, 100 + Caster.Direction.x * 20, 300 + Caster.Direction.y * 20, 12, 12, 255, 0, 0);
 	OutputDebugString(L"x:");
