@@ -13,46 +13,11 @@
 
 #define MAX_LOADSTRING 100
 #define global_variable static
-global_variable char* Keys;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-global_variable HWND WindowHandle;
-
-
-struct Raycaster {
-	glm::vec2 Origin{ 5,5 };
-	glm::vec2 Direction{ 0,-1 };
-	int Fov;
-	int Near;
-	int Far;
-};
-
-global_variable Raycaster Caster;
-
-struct LevelData {
-
-	int Width = 9;
-	int Height = 6;
-
-	char data[54] = {
-		1,1,1,1,1,1,1,1,1,
-		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,1,1,
-		1,1,1,1,1,1,1,1,1,
-	};
-};
-
-global_variable LevelData Level;
-
-bool IsKeyDown(char key)
-{
-	return Keys[key - 'a'];
-}
 
 struct Win32OffscreenBuffer
 {
@@ -73,14 +38,55 @@ struct WindowDimension
 };
 
 
+struct Raycaster {
+	glm::vec2 Origin{ 5,5 };
+	glm::vec2 Direction{ 0,-1 };
+	int Fov;
+	int Near;
+	int Far;
+};
+
+
+struct LevelData {
+
+	int Width = 9;
+	int Height = 8;
+
+	char data[72] = {
+		1,1,1,1,1,1,1,1,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,1,1,
+		1,1,1,1,1,1,1,1,1,
+	};
+};
+
+global_variable char* Keys;
+global_variable HWND WindowHandle;
+global_variable Raycaster Caster;
+global_variable LevelData Level;
+global_variable Win32OffscreenBuffer OffscreenBuffer;
+global_variable int SOLID_TILE = 1;
+global_variable int OPEN_TILE = 0;
+global_variable glm::vec2 positionVec;
+
+
+bool IsKeyDown(char key)
+{
+	return Keys[key - 'a'];
+}
+
+
+
 WindowDimension GetWindowDimension(HWND hWnd)
 {
 	RECT theRect;
 	GetClientRect(hWnd, &theRect);
 	return WindowDimension{ theRect.right - theRect.left, theRect.bottom - theRect.top };
 }
-
-global_variable Win32OffscreenBuffer OffscreenBuffer;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -97,8 +103,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
+void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 
-global_variable glm::vec2 positionVec;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -153,16 +159,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
- 
+
 		if (IsKeyDown('w'))
-		{ 
-			Caster.Origin.y += Caster.Direction.y * 0.02f; 
-			Caster.Origin.x += Caster.Direction.x * 0.02f; 
+		{
+			Caster.Origin.y += Caster.Direction.y * 0.02f;
+			Caster.Origin.x += Caster.Direction.x * 0.02f;
 		}
 		if (IsKeyDown('s'))
 		{
-			Caster.Origin.y += -Caster.Direction.y * 0.02f; 
-			Caster.Origin.x += Caster.Direction.x * 0.02f; 
+			Caster.Origin.y += -Caster.Direction.y * 0.02f;
+			Caster.Origin.x += Caster.Direction.x * 0.02f;
 		}
 
 		if (IsKeyDown('a'))
@@ -172,12 +178,34 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
+		DrawLevel(&OffscreenBuffer, Level, 600, 10);
 		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		Win32ClearBuffer(&OffscreenBuffer);
+		//Win32ClearBuffer(&OffscreenBuffer);
+	}
+	return (int)msg.wParam;
+}
+
+void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int offsety)
+{
+	int sz = 16;
+	for (int i = 0; i < level.Width * level.Height; i++)
+	{
+		int x = (i % level.Width);
+		int y = (i / level.Width);
+
+		if (level.data[i] == SOLID_TILE)
+			Win32DrawRect(buffer, offsetx + x * sz, offsety + y * sz, sz, sz, 127, 0, 255);
+		else
+			Win32DrawRect(buffer, offsetx + x * sz, offsety + y * sz, sz, sz, 0, 0, 255);
 	}
 
+	int playerX = (Caster.Origin.x / (float)level.Width ) * level.Width * sz;
+	playerX += offsetx;
+	int playerY = (Caster.Origin.y / (float)level.Height ) * level.Height * sz;
+	playerY += offsety;
 
-	return (int)msg.wParam;
+	Win32DrawRect(buffer,  playerX, playerY, 3, 3, 255, 0, 0);
+	Win32DrawRect(buffer,  playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
 }
 
 float RayDistance(float px, float py, float dx, float dy);
@@ -194,11 +222,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 
-		float wallH = 200;
+		float wallH = 200; 
+		float h = (std::max(d, 1.0f) / 9.0f); 
 
-		float h = (std::max(d, 1.0f) / 9.0f);
-
-		Win32DrawRect(buffer, i, 200-(0.5f*h*wallH), 1, h*wallH, 255 * d, 255 * d, 255 * d);
+		Win32DrawRect(buffer, i, 200 - (0.5f * h * wallH), 1, h * wallH, 255 * d, 255 * d, 255 * d);
 	}
 
 	Win32DrawRect(buffer, 100, 300, 12, 12, 255, 0, 0);
@@ -224,8 +251,6 @@ int ReadTileAt(float x, float y)
 	return Level.data[idx];
 }
 
-global_variable int SOLID_TILE = 1;
-global_variable int OPEN_TILE = 0;
 float RayDistance(float px, float py, float dx, float dy)
 {
 	glm::vec2 pos;
@@ -451,7 +476,7 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer)
 {
 	int sz = buffer->Width * buffer->Height;
-	memset(buffer->Memory, 0, sz*sizeof(UINT32));
+	memset(buffer->Memory, 0, sz * sizeof(UINT32));
 }
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
