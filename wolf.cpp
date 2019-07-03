@@ -58,8 +58,8 @@ struct LevelData {
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,1,1,
+		1,0,0,0,0,0,1,1,1,
+		1,0,0,0,0,0,1,1,1,
 		1,1,1,1,1,1,1,1,1,
 	};
 };
@@ -180,7 +180,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		yOffset += Caster.Direction.y * 2;
 		DrawLevel(&OffscreenBuffer, Level, 600, 10);
 		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		//Win32ClearBuffer(&OffscreenBuffer);
+		Win32ClearBuffer(&OffscreenBuffer);
 	}
 	return (int)msg.wParam;
 }
@@ -212,7 +212,7 @@ float RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = 400.0f;
-	float fov = glm::radians(90.0f);
+	float fov = glm::radians(80.0f);
 	float step = fov / res;
 
 	glm::vec2 dir = Caster.Direction;
@@ -223,24 +223,24 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 
 		float wallH = 200; 
-		float h = (std::max(d, 1.0f) / 9.0f); 
+		float wallScale = (std::max(d, 1.0f) / 9.0f); 
+		float wallHeightScale = (1.0f - wallScale);
+		float actuallheight = wallH * wallHeightScale;
 
-		Win32DrawRect(buffer, i, 200 - (0.5f * h * wallH), 1, h * wallH, 255 * d, 255 * d, 255 * d);
+		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * wallHeightScale, 255 * wallHeightScale, 255 *wallHeightScale );
 	}
 
-	Win32DrawRect(buffer, 100, 300, 12, 12, 255, 0, 0);
-	Win32DrawRect(buffer, 100 + Caster.Direction.x * 20, 300 + Caster.Direction.y * 20, 12, 12, 255, 0, 0);
-	OutputDebugString(L"x:");
-	OutputDebugString(std::to_wstring(Caster.Origin.x).c_str());
-	OutputDebugString(L"y:");
-	OutputDebugString(std::to_wstring(Caster.Origin.y).c_str());
-	OutputDebugString(L"\n");
-	OutputDebugString(std::to_wstring(ReadTileAt(Caster.Origin.x, Caster.Origin.y)).c_str());
-	int idx = (int)Caster.Origin.y * Level.Width + (int)Caster.Origin.x;
-	OutputDebugString(L"idx:");
-	OutputDebugString(std::to_wstring(idx).c_str());
-	OutputDebugString(L"\n");
-	OutputDebugString(L"\n");
+	//OutputDebugString(L"x:");
+	//OutputDebugString(std::to_wstring(Caster.Origin.x).c_str());
+	//OutputDebugString(L"y:");
+	//OutputDebugString(std::to_wstring(Caster.Origin.y).c_str());
+	//OutputDebugString(L"\n");
+	//OutputDebugString(std::to_wstring(ReadTileAt(Caster.Origin.x, Caster.Origin.y)).c_str());
+	//int idx = (int)Caster.Origin.y * Level.Width + (int)Caster.Origin.x;
+	//OutputDebugString(L"idx:");
+	//OutputDebugString(std::to_wstring(idx).c_str());
+	//OutputDebugString(L"\n");
+	//OutputDebugString(L"\n");
 
 	float done = 1.0f;
 }
