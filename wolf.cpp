@@ -19,6 +19,12 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
+struct RayResult
+{
+	float Distance;
+	float TexCoord;
+};
+
 struct Win32OffscreenBuffer
 {
 	BITMAPINFO Info;
@@ -199,21 +205,24 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 			Win32DrawRect(buffer, offsetx + x * sz, offsety + y * sz, sz, sz, 0, 0, 255);
 	}
 
-	int playerX = (Caster.Origin.x / (float)level.Width ) * level.Width * sz;
+	int playerX = (Caster.Origin.x / (float)level.Width) * level.Width * sz;
 	playerX += offsetx;
-	int playerY = (Caster.Origin.y / (float)level.Height ) * level.Height * sz;
+	int playerY = (Caster.Origin.y / (float)level.Height) * level.Height * sz;
 	playerY += offsety;
 
-	Win32DrawRect(buffer,  playerX, playerY, 3, 3, 255, 0, 0);
-	Win32DrawRect(buffer,  playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
+	Win32DrawRect(buffer, playerX, playerY, 3, 3, 255, 0, 0);
+	Win32DrawRect(buffer, playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
 }
 
-float RayDistance(float px, float py, float dx, float dy);
+RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = 400.0f;
-	float fov = glm::radians(80.0f);
+	float fov = glm::radians(60.0f);
 	float step = fov / res;
+	float wallH = 200;
+	float farPlane = 9.0f;
+	float farPlaneColor = 6.0f;
 
 	glm::vec2 dir = Caster.Direction;
 	dir = glm::rotate(dir, -fov * 0.5f);
@@ -221,15 +230,14 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	{
 		dir = glm::rotate(dir, step);
 
-		float d = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-
-		float wallH = 200; 
-		float wallScale = (std::max(d, 1.0f) / 9.0f); 
+		RayResult res = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		float wallScale = (std::max(res.Distance, 1.0f) / farPlane);
+		float colorScale = 1.0f - (std::max(res.Distance, 1.0f) / farPlaneColor);
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
-		Win32DrawRect(buffer,i,200,1,wallH,0,0,0);
-		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * wallHeightScale, 255 * wallHeightScale, 255 *wallHeightScale );
+		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0);
+		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * res.TexCoord, 255 * colorScale, 255 * colorScale);
 	}
 
 	//OutputDebugString(L"x:");
@@ -253,7 +261,19 @@ int ReadTileAt(float x, float y)
 	return Level.data[idx];
 }
 
-float RayDistance(float px, float py, float dx, float dy)
+
+float ReadChordRow(float x, float y)
+{
+	float maxx = std::min(x - (int)x, y - (int)y);
+	if (maxx < 0.01f)
+	{
+		maxx = std::max(x - (int)x, y - (int)y);
+	}
+	return maxx;
+}
+
+
+RayResult RayDistance(float px, float py, float dx, float dy)
 {
 	glm::vec2 pos;
 	pos.x = px;
@@ -274,7 +294,8 @@ float RayDistance(float px, float py, float dx, float dy)
 		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
 	}
 
-	return glm::distance(pos, orig);
+	float uv = ReadChordRow(pos.x, pos.y); 
+	return RayResult{ glm::distance(pos, orig), uv };
 }
 
 //
