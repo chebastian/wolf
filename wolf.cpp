@@ -85,8 +85,6 @@ bool IsKeyDown(char key)
 	return Keys[key - 'a'];
 }
 
-
-
 WindowDimension GetWindowDimension(HWND hWnd)
 {
 	RECT theRect;
@@ -94,12 +92,18 @@ WindowDimension GetWindowDimension(HWND hWnd)
 	return WindowDimension{ theRect.right - theRect.left, theRect.bottom - theRect.top };
 }
 
+struct TextureBuffer
+{
+	int stuff;
+};
+
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
+void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
@@ -110,6 +114,30 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
+//UINT32 PointToTextureColumn(float u, int texH, float scalar);
+UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
+
+global_variable Win32OffscreenBuffer WallTexture;
+void LoadTexture()
+{
+	HDC context = GetDC(WindowHandle);
+	WallTexture.Bpp = 3;
+	HBITMAP hbit = (HBITMAP)LoadImage(NULL, L"./tex.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	Win32GetPixels(&WallTexture, context, hbit);
+	ReleaseDC(0, context);
+}
+
+struct Win32RGB
+{
+	char b;
+	char g;
+	char r;
+};
+
+Win32RGB PointToUvChord(float x, float y)
+{
+	return Win32RGB{ (char)255, (char)255, (char)25 };
+}
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -140,6 +168,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
 	InitializeKeys();
+
+	LoadTexture();
 
 	int xOffset = 0;
 	int yOffset = 0;
@@ -214,6 +244,17 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 	Win32DrawRect(buffer, playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
 }
 
+UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
+{
+	int posX = (int)(u * (float)WallTexture.Width);
+	UINT32* column = (UINT32*)WallTexture.Memory + (posX * WallTexture.Bpp);
+
+	float columnScale = (float)columnHeight / (float)WallTexture.Height;
+	int pointInTex = (int)(v * WallTexture.Height);
+	UINT32* columnPixel = (UINT32*)column + pointInTex;
+	return *columnPixel;
+}
+
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
@@ -236,8 +277,17 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
+		TextureBuffer texBuff;
+		//UINT32 color = PointToTextureColumn(res.TexCoord, 0.5f, wallH, wallHeightScale);
+
 		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0);
 		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * res.TexCoord, 255 * colorScale, 255 * colorScale);
+
+		//Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight,
+		//	color & 0x0000FF,
+		//	color & 0x00FF00,
+		//	color & 0xFF0000
+		//);
 	}
 
 	//OutputDebugString(L"x:");
@@ -294,7 +344,7 @@ RayResult RayDistance(float px, float py, float dx, float dy)
 		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
 	}
 
-	float uv = ReadChordRow(pos.x, pos.y); 
+	float uv = ReadChordRow(pos.x, pos.y);
 	return RayResult{ glm::distance(pos, orig), uv };
 }
 
@@ -435,6 +485,23 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+void  Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap)
+{
+	buffer->Width = 32;
+	buffer->Height = 32;
+	buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
+	buffer->Info.bmiHeader.biWidth = buffer->Width;
+	buffer->Info.bmiHeader.biHeight = -buffer->Height;
+	buffer->Info.bmiHeader.biPlanes = 1;
+	buffer->Info.bmiHeader.biBitCount = 24;
+	buffer->Info.bmiHeader.biCompression = BI_RGB;
+	buffer->Pitch = buffer->Width * buffer->Bpp;
+
+	auto ctx = CreateCompatibleDC(NULL);
+	SelectObject(ctx, bitmap);
+	GetDIBits(ctx, bitmap, 0, buffer->Height, buffer->Memory, &buffer->Info, DIB_RGB_COLORS);
+	ReleaseDC(WindowHandle,ctx);
+}
 
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
 {
