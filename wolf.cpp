@@ -109,6 +109,7 @@ void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY, int w, int h);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
@@ -122,7 +123,8 @@ void LoadTexture()
 {
 	HDC context = GetDC(WindowHandle);
 	WallTexture.Bpp = 3;
-	HBITMAP hbit = (HBITMAP)LoadImage(NULL, L"./tex.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	HBITMAP hbit = (HBITMAP)LoadImage(NULL, L"./wall.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	//HBITMAP hbit = (HBITMAP)LoadBitmap(NULL, L"./tex.bmp");
 	Win32GetPixels(&WallTexture, context, hbit);
 	ReleaseDC(0, context);
 }
@@ -258,7 +260,7 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
-	float res = 400.0f;
+	float res = 320.0f;
 	float fov = glm::radians(60.0f);
 	float step = fov / res;
 	float wallH = 200;
@@ -280,14 +282,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		TextureBuffer texBuff;
 		//UINT32 color = PointToTextureColumn(res.TexCoord, 0.5f, wallH, wallHeightScale);
 
-		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0);
-		Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight, 255 * res.TexCoord, 255 * colorScale, 255 * colorScale);
+		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0); //Clear screen
 
-		//Win32DrawRect(buffer, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight,
-		//	color & 0x0000FF,
-		//	color & 0x00FF00,
-		//	color & 0xFF0000
-		//);
+		//Draw Wall strip
+		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,res.Distance, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
@@ -319,7 +317,7 @@ float ReadChordRow(float x, float y)
 	{
 		maxx = std::max(x - (int)x, y - (int)y);
 	}
-	return maxx;
+	return  maxx;
 }
 
 
@@ -485,22 +483,30 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+UINT32 ReadPixelAt(Win32OffscreenBuffer* buffer, int x, int y)
+{
+	UINT8* pixel = (UINT8*)buffer->Memory + x;
+	return *pixel;
+}
+
 void  Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap)
 {
-	buffer->Width = 32;
-	buffer->Height = 32;
+	buffer->Info = { 0 };
 	buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
-	buffer->Info.bmiHeader.biWidth = buffer->Width;
-	buffer->Info.bmiHeader.biHeight = -buffer->Height;
-	buffer->Info.bmiHeader.biPlanes = 1;
-	buffer->Info.bmiHeader.biBitCount = 24;
-	buffer->Info.bmiHeader.biCompression = BI_RGB;
-	buffer->Pitch = buffer->Width * buffer->Bpp;
 
-	auto ctx = CreateCompatibleDC(NULL);
-	SelectObject(ctx, bitmap);
-	GetDIBits(ctx, bitmap, 0, buffer->Height, buffer->Memory, &buffer->Info, DIB_RGB_COLORS);
-	ReleaseDC(WindowHandle,ctx);
+	auto ctx = GetDC(WindowHandle);
+	int ress = GetDIBits(ctx, bitmap, 0, 0, NULL, &buffer->Info, DIB_RGB_COLORS);
+	buffer->Pitch = buffer->Width * buffer->Bpp;
+	buffer->Info.bmiHeader.biHeight = buffer->Info.bmiHeader.biHeight > 0 ? -buffer->Info.bmiHeader.biHeight : buffer->Info.bmiHeader.biHeight;
+	buffer->Width = std::abs( buffer->Info.bmiHeader.biWidth );
+	buffer->Height= std::abs( buffer->Info.bmiHeader.biHeight );
+
+	BYTE* pixels = new BYTE[buffer->Info.bmiHeader.biSizeImage];
+
+	int res = GetDIBits(ctx, bitmap, 0, buffer->Info.bmiHeader.biHeight, pixels, &buffer->Info, DIB_RGB_COLORS);
+	buffer->Memory = pixels;
+	ReadPixelAt(buffer, 0, 0);
+	ReleaseDC(WindowHandle, ctx);
 }
 
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
@@ -541,6 +547,40 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel += (x);
 	*Pixel = ((r << 16) | (g << 8) | b);
 	Pixel++;
+}
+
+void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY, int w, int h)
+{
+	UINT32* Pixel;
+	UINT8* Row = (UINT8*)buffer->Memory;;
+
+	Row += buffer->Pitch * OffsetY;
+	Pixel = (UINT32*)Row;
+	Pixel += (OffsetX);
+
+	UINT32* TexturePixel;
+	UINT32* TextureColumn = (UINT32*)tex->Memory;
+	//UINT32 textureIndex = (UINT32)(u * tex->Width);
+
+	//UINT32 textureIndex = (UINT32)((u * tex->Width)*tex->Bpp);
+	UINT32 textureIndex = (UINT32)(u * tex->Width);
+
+	TextureColumn += textureIndex;
+
+	for (auto y = 0; y < h; y++)
+	{
+		Pixel = (UINT32*)Row;
+		Pixel += (OffsetX);
+		double texy = std::max(1, y);
+		UINT32 inTextureY = tex->Height * (texy / (double)h);
+		inTextureY = std::min((int)inTextureY, tex->Height);
+		auto textureOffset = inTextureY * tex->Height;
+		TexturePixel = (UINT32*)TextureColumn + textureOffset;
+		*Pixel = (UINT32)((*TexturePixel)*1.0);
+		//*Pixel *= dist;
+		Row += buffer->Pitch;
+	}
+
 }
 
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
