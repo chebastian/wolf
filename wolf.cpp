@@ -259,7 +259,7 @@ RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = 320.0f;
-	float fov = glm::radians(90.0f);
+	float fov = glm::radians(60.0f);
 	float step = fov / res;
 	float wallH = 400;
 	float nearPlane = 1.0f;
@@ -287,7 +287,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawRect(buffer, i, 100, 1, wallH, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, 1.0, offsetX, offsetY, actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, rayRes.Distance, offsetX, offsetY, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
@@ -564,6 +564,13 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 	UINT32* TextureColumn = (UINT32*)tex->Memory;
 	//UINT32 textureIndex = (UINT32)(u * tex->Width);
 
+	UINT32 startTexY = 0;
+	if (dist < 1.0)
+	{ 
+		startTexY = tex->Height - (tex->Height * dist);
+		startTexY *= 0.5;
+	}
+
 	//UINT32 textureIndex = (UINT32)((u * tex->Width)*tex->Bpp);
 	UINT32 textureIndex = (UINT32)(u * tex->Width);
 
@@ -574,7 +581,7 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
 		double texy = std::max(1, y);
-		UINT32 inTextureY = tex->Height * (texy / (double)h);
+		UINT32 inTextureY = (tex->Height-startTexY) * ((startTexY +  texy) / ((double)h) );
 		inTextureY = std::min((int)inTextureY, tex->Height);
 		auto textureOffset = inTextureY * tex->Height;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
@@ -597,7 +604,7 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
-			*Pixel = ((r << 16) | (g << 8) | b);
+		*Pixel = ((r << 16) | (g << 8) | b);
 			Pixel++;
 		}
 
