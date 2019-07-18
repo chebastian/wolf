@@ -109,7 +109,7 @@ void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
-void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY, int w, int h);
+void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
@@ -281,7 +281,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,res.Distance, i, 200 + (0.5f * (wallScale * wallH)), 1, actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,colorScale, i, 200 + (0.5f * (wallScale * wallH)), actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
@@ -545,7 +545,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel++;
 }
 
-void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY, int w, int h)
+void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex,double u,double dist, int OffsetX, int OffsetY,int h)
 {
 	UINT32* Pixel;
 	UINT8* Row = (UINT8*)buffer->Memory;;
@@ -573,7 +573,6 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		auto textureOffset = inTextureY * tex->Height;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
 		*Pixel = (UINT32)((*TexturePixel)*1.0);
-		//*Pixel *= dist;
 		Row += buffer->Pitch;
 	}
 
