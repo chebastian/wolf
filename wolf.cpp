@@ -260,7 +260,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float res = 320.0f;
 	float fov = glm::radians(60.0f);
 	float step = fov / res;
-	float wallH = 200;
+	float wallH = 400;
 	float farPlane = 9.0f;
 	float farPlaneColor = 6.0f;
 
@@ -276,12 +276,15 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
+		float offsetY = 200 + (0.5f * (wallScale * wallH));
+		float offsetX = i;
+
 		TextureBuffer texBuff;
 
 		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,colorScale, i, 200 + (0.5f * (wallScale * wallH)), actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,colorScale, offsetX,offsetY, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
