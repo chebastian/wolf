@@ -115,7 +115,6 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
-//UINT32 PointToTextureColumn(float u, int texH, float scalar);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
 
 global_variable Win32OffscreenBuffer WallTexture;
@@ -124,7 +123,6 @@ void LoadTexture()
 	HDC context = GetDC(WindowHandle);
 	WallTexture.Bpp = 3;
 	HBITMAP hbit = (HBITMAP)LoadImage(NULL, L"./wall.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	//HBITMAP hbit = (HBITMAP)LoadBitmap(NULL, L"./tex.bmp");
 	Win32GetPixels(&WallTexture, context, hbit);
 	ReleaseDC(0, context);
 }
@@ -280,7 +278,6 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float actuallheight = wallH * wallHeightScale;
 
 		TextureBuffer texBuff;
-		//UINT32 color = PointToTextureColumn(res.TexCoord, 0.5f, wallH, wallHeightScale);
 
 		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0); //Clear screen
 
