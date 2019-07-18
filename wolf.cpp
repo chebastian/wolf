@@ -8,6 +8,7 @@
 #include "wolf.h"
 #include <algorithm>
 #include <string>
+#include <math.h>
 #include <Xinput.h>
 #pragma comment(lib,"xinput.lib")
 
@@ -258,7 +259,7 @@ RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = 320.0f;
-	float fov = glm::radians(60.0f);
+	float fov = glm::radians(90.0f);
 	float step = fov / res;
 	float wallH = 400;
 	float farPlane = 9.0f;
@@ -269,22 +270,27 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
-
-		RayResult res = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		float wallScale = (std::max(res.Distance, 1.0f) / farPlane);
-		float colorScale = 1.0f - (std::max(res.Distance, 1.0f) / farPlaneColor);
+ 
+		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		float wallScale = (std::max(rayRes.Distance, 1.0f) / farPlane);
+		float colorScale = 1.0f - (std::max(rayRes.Distance, 1.0f) / farPlaneColor);
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
 		float offsetY = 200 + (0.5f * (wallScale * wallH));
 		float offsetX = i;
 
+		float correction = std::abs( 1.0 - sin( (float)i / (float)(res)* glm::pi<float>()) );
+		float correctionDeg = correction * fov;
+
+		actuallheight += correction * 5;
+
 		TextureBuffer texBuff;
 
 		Win32DrawRect(buffer, i, 200, 1, wallH, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, res.TexCoord,colorScale, offsetX,offsetY, actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord,colorScale, offsetX,offsetY, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
