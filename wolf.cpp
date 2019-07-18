@@ -333,7 +333,7 @@ RayResult RayDistance(float px, float py, float dx, float dy)
 
 	glm::vec2 dir{ dx,dy };
 
-	float stepLength = 0.002f;
+	float stepLength = 0.005f;
 	bool hit = false;
 	while (!hit)
 	{
