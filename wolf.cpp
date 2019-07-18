@@ -269,36 +269,44 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
-	float res = 320.0f;
-	float fov = glm::radians(60.0f);
+	float res = 600.0f;
+	float fov = glm::radians<float>(60.0f);
 	float step = fov / res;
-	float wallH = 400;
+	float wallH = 500;
 	float nearPlane = 1.0f;
 	float farPlane = 9.0f;
 	float farPlaneColor = 6.0f;
 
+	float startY = 0.0f;
+
 	glm::vec2 dir = Caster.Direction;
 	dir = glm::rotate(dir, -fov * 0.5f);
+	float angle = fov * -0.5f;
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
 
+		float correction = cos(angle);
+		angle += step;
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		float wallScale = (std::max(rayRes.Distance, 0.1f) / farPlane);
+		float distance = rayRes.Distance * correction;
+		float wallScale = (std::max(distance, 0.1f) / farPlane);
 		float wallHeightScale = (1.0f - wallScale);
 		float actuallheight = wallH * wallHeightScale;
 
-		float offsetY = 100 + (0.5f * (wallScale * wallH));
+		float offsetY = startY + (0.5f * (wallScale * wallH));
 		float offsetX = i;
 
-		float correction = std::abs(1.0 - sin((float)i / (float)(res)* glm::pi<float>()));
+		//float correction = std::abs(1.0 - sin((float)i / (float)(res)* glm::pi<float>()));
+		//float correction = cos((float)i / (float)(res*0.5)* glm::pi<float>());
+		//float correction = 0.0f;
 
 		//TODO fix, this should not be a arbitrary number
-		actuallheight += correction * 5;
-		Win32DrawRect(buffer, i, 100, 1, wallH, 0, 0, 0); //Clear screen
+		//actuallheight *= correction;
+		Win32DrawRect(buffer, i, startY, 1, wallH, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, rayRes.Distance, offsetX, offsetY, actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, offsetY, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
@@ -576,11 +584,11 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 	//UINT32 textureIndex = (UINT32)(u * tex->Width);
 
 	UINT32 startTexY = 0;
-	if (dist < 1.0)
-	{ 
-		startTexY = tex->Height - (tex->Height * dist);
-		startTexY *= 0.5;
-	}
+	//if (dist < 1.0)
+	//{ 
+	//	startTexY = tex->Height - (tex->Height * dist);
+	//	startTexY *= 0.5;
+	//}
 
 	//UINT32 textureIndex = (UINT32)((u * tex->Width)*tex->Bpp);
 	UINT32 textureIndex = (UINT32)(u * tex->Width);
