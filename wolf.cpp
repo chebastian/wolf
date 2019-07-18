@@ -62,11 +62,11 @@ struct LevelData {
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,1,
+		1,1,1,1,1,1,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
+		1,0,1,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,1,1,1,
-		1,0,0,0,0,0,1,1,1,
 		1,1,1,1,1,1,1,1,1,
 	};
 };
@@ -196,15 +196,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 
+		float scalar = 0.05f;
 		if (IsKeyDown('w'))
 		{
-			Caster.Origin.y += Caster.Direction.y * 0.02f;
-			Caster.Origin.x += Caster.Direction.x * 0.02f;
+			Caster.Origin.y += Caster.Direction.y * scalar;
+			Caster.Origin.x += Caster.Direction.x * scalar;
 		}
 		if (IsKeyDown('s'))
 		{
-			Caster.Origin.y += -Caster.Direction.y * 0.02f;
-			Caster.Origin.x += -Caster.Direction.x * 0.02f;
+			Caster.Origin.y += -Caster.Direction.y * scalar;
+			Caster.Origin.x += -Caster.Direction.x * scalar;
+		}
+		if (IsKeyDown('e'))
+		{
+			Caster.Origin.y += Caster.Direction.x * scalar;
+			Caster.Origin.x += -Caster.Direction.y * scalar;
+		}
+		if (IsKeyDown('q'))
+		{
+			Caster.Origin.y += -Caster.Direction.x * scalar;
+			Caster.Origin.x += Caster.Direction.y * scalar;
 		}
 
 		if (IsKeyDown('a'))
