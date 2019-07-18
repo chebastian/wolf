@@ -189,7 +189,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		//RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
-		Win32DrawRect(&OffscreenBuffer, 20, 100, 80, 40, 255, 0, 255);
 		Win32DrawGame(&OffscreenBuffer);
 		HDC context = GetDC(WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
