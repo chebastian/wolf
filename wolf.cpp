@@ -203,7 +203,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		if (IsKeyDown('s'))
 		{
 			Caster.Origin.y += -Caster.Direction.y * 0.02f;
-			Caster.Origin.x += Caster.Direction.x * 0.02f;
+			Caster.Origin.x += -Caster.Direction.x * 0.02f;
 		}
 
 		if (IsKeyDown('a'))
