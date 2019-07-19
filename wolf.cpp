@@ -272,9 +272,9 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float res = 480.0f;
 	float fov = glm::radians<float>(60.0f);
 	float step = fov / res;
-	float wallH = 500;
+	float wallH = 50;
 	float nearPlane = 1.0f;
-	float farPlane = 9.0f;
+	float farPlane = 7.0f;
 	float farPlaneColor = 6.0f;
 
 	float startY = 0.0f;
@@ -289,12 +289,12 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float correction = cos(angle);
 		angle += step;
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		float distance = rayRes.Distance * correction;
-		float wallScale = (std::max(distance, 0.1f) / farPlane);
-		float wallHeightScale = (1.0f - wallScale);
-		float actuallheight = wallH * wallHeightScale;
+		float distance = 1.0 + rayRes.Distance * correction;
+		float wallScale = 1.0f - (distance / farPlane);
+		float actuallheight = 20 * (wallH / distance);
 
-		float offsetY = startY + (0.5f * (wallScale * wallH));
+		//float offsetY = startY + (0.5f * (wallScale * wallH));
+		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;
 
 		//float correction = std::abs(1.0 - sin((float)i / (float)(res)* glm::pi<float>()));
@@ -303,10 +303,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 		//TODO fix, this should not be a arbitrary number
 		//actuallheight *= correction;
-		Win32DrawRect(buffer, i, startY, 1, wallH, 0, 0, 0); //Clear screen
+		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, offsetY, actuallheight);
+		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 	}
 
 	//OutputDebugString(L"x:");
@@ -356,7 +356,7 @@ RayResult RayDistance(float px, float py, float dx, float dy)
 
 	auto newpy = py + dy;
 	float distanceToNextY = py - (int)py;
- 
+
 
 	float stepLength = 0.005f;
 	bool hit = false;
@@ -601,14 +601,20 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 
 	for (auto y = 0; y < h; y++)
 	{
+		if (OffsetY + y <= 0 || OffsetY + y >= buffer->Height)
+		{
+			Row += buffer->Pitch;
+			continue;
+		}
+
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
 		double texy = std::max(1, y);
-		UINT32 inTextureY = (tex->Height-startTexY) * ((startTexY +  texy) / ((double)h) );
+		UINT32 inTextureY = (tex->Height - startTexY) * ((startTexY + texy) / ((double)h));
 		inTextureY = std::min((int)inTextureY, tex->Height);
 		auto textureOffset = inTextureY * tex->Height;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
-		*Pixel = (UINT32)((*TexturePixel) * 1.0);
+		*Pixel = (UINT32)((*TexturePixel));
 		Row += buffer->Pitch;
 	}
 
@@ -627,7 +633,7 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
-		*Pixel = ((r << 16) | (g << 8) | b);
+			*Pixel = ((r << 16) | (g << 8) | b);
 			Pixel++;
 		}
 
