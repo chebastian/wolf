@@ -46,8 +46,8 @@ struct WindowDimension
 
 
 struct Raycaster {
-	glm::vec2 Origin{ 5,5 };
-	glm::vec2 Direction{ 0,-1 };
+	glm::vec2 Origin{ 5,1.5 };
+	glm::vec2 Direction{ -1,0 };
 	int Fov;
 	int Near;
 	int Far;
@@ -269,7 +269,7 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
-	float res = 600.0f;
+	float res = 480.0f;
 	float fov = glm::radians<float>(60.0f);
 	float step = fov / res;
 	float wallH = 500;
@@ -353,6 +353,10 @@ RayResult RayDistance(float px, float py, float dx, float dy)
 	orig.y = py;
 
 	glm::vec2 dir{ dx,dy };
+
+	auto newpy = py + dy;
+	float distanceToNextY = py - (int)py;
+ 
 
 	float stepLength = 0.005f;
 	bool hit = false;
