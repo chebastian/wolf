@@ -20,6 +20,20 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
+struct RGBColor
+{
+	UINT8 r;
+	UINT8 g;
+	UINT8 b;
+};
+
+struct GameObject
+{
+	float x;
+	float y;
+	int SpriteIndex;
+};
+
 struct RayResult
 {
 	float Distance;
@@ -76,6 +90,8 @@ global_variable HWND WindowHandle;
 global_variable Raycaster Caster;
 global_variable LevelData Level;
 global_variable Win32OffscreenBuffer OffscreenBuffer;
+global_variable Win32OffscreenBuffer WallTexture;
+global_variable Win32OffscreenBuffer GameObjectTexture;
 global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
@@ -117,15 +133,14 @@ int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
+void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color); 
 
-global_variable Win32OffscreenBuffer WallTexture;
-void LoadTexture()
+void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
 	HDC context = GetDC(WindowHandle);
-	WallTexture.Bpp = 3;
-	HBITMAP hbit = (HBITMAP)LoadImage(NULL, L"./wall.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	HBITMAP hbit = (HBITMAP)LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	Win32GetPixels(&WallTexture, context, hbit);
-	ReleaseDC(0, context);
+	ReleaseDC(0, context); 
 }
 
 struct Win32RGB
@@ -170,7 +185,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
 	InitializeKeys();
 
-	LoadTexture();
+	LoadBufferFromImage(&WallTexture, L"wall.bmp");
 
 	int xOffset = 0;
 	int yOffset = 0;
@@ -269,7 +284,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float res = 480.0f;
 	float fov = glm::radians<float>(60.0f);
 	float step = fov / res;
-	float wallH = 50;
+	float wallH = 64;
 	float nearPlane = 1.0f;
 	float farPlaneColor = 6.0f;
 
@@ -297,10 +312,11 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 		//Draw Wall strip
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
 	float done = 1.0f;
-}
+} 
 
 int ReadTileAt(float x, float y)
 {
@@ -587,6 +603,15 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		Row += buffer->Pitch;
 	}
 
+}
+
+void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color)
+{
+	for (int y = OffsetY; y < OffsetY + h; y++)
+	{
+		float tint = (float)y / buffer->Height;
+		Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
+	}
 }
 
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
