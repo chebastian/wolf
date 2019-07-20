@@ -274,35 +274,28 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float step = fov / res;
 	float wallH = 50;
 	float nearPlane = 1.0f;
-	float farPlane = 7.0f;
 	float farPlaneColor = 6.0f;
 
+	float LevelHeight = 15.0f;
 	float startY = 0.0f;
 
 	glm::vec2 dir = Caster.Direction;
 	dir = glm::rotate(dir, -fov * 0.5f);
-	float angle = fov * -0.5f;
+	float angle = -fov * 0.5f;
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
 
-		float correction = cos(angle);
 		angle += step;
+		float correction = cos(angle);
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 		float distance = 1.0 + rayRes.Distance * correction;
-		float wallScale = 1.0f - (distance / farPlane);
-		float actuallheight = 20 * (wallH / distance);
-
-		//float offsetY = startY + (0.5f * (wallScale * wallH));
+		float actuallheight = LevelHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;
 
-		//float correction = std::abs(1.0 - sin((float)i / (float)(res)* glm::pi<float>()));
-		//float correction = cos((float)i / (float)(res*0.5)* glm::pi<float>());
-		//float correction = 0.0f;
 
 		//TODO fix, this should not be a arbitrary number
-		//actuallheight *= correction;
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
