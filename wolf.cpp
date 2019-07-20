@@ -91,7 +91,7 @@ global_variable Raycaster Caster;
 global_variable LevelData Level;
 global_variable Win32OffscreenBuffer OffscreenBuffer;
 global_variable Win32OffscreenBuffer WallTexture;
-global_variable Win32OffscreenBuffer GameObjectTexture;
+global_variable Win32OffscreenBuffer SoldierTexture;
 global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
@@ -139,7 +139,7 @@ void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
 	HDC context = GetDC(WindowHandle);
 	HBITMAP hbit = (HBITMAP)LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	Win32GetPixels(&WallTexture, context, hbit);
+	Win32GetPixels(buffer, context, hbit);
 	ReleaseDC(0, context); 
 }
 
@@ -186,6 +186,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	InitializeKeys();
 
 	LoadBufferFromImage(&WallTexture, L"wall.bmp");
+	LoadBufferFromImage(&SoldierTexture, L"soldier.bmp");
 
 	int xOffset = 0;
 	int yOffset = 0;
@@ -524,7 +525,6 @@ void  Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bi
 
 	int res = GetDIBits(ctx, bitmap, 0, buffer->Info.bmiHeader.biHeight, pixels, &buffer->Info, DIB_RGB_COLORS);
 	buffer->Memory = pixels;
-	ReadPixelAt(buffer, 0, 0);
 	ReleaseDC(WindowHandle, ctx);
 }
 
