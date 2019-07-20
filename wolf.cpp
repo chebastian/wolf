@@ -189,7 +189,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		//RenderWeirdBkg(&OffscreenBuffer, xOffset, yOffset);
 		Win32DrawGame(&OffscreenBuffer);
 		HDC context = GetDC(WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
@@ -226,8 +225,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
 		DrawLevel(&OffscreenBuffer, Level, 600, 10);
-		//xOffset = IsKeyDown('a') ? xOffset - 1 : xOffset;
-		//Win32ClearBuffer(&OffscreenBuffer);
 	}
 	return (int)msg.wParam;
 }
@@ -301,18 +298,6 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		//Draw Wall strip
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 	}
-
-	//OutputDebugString(L"x:");
-	//OutputDebugString(std::to_wstring(Caster.Origin.x).c_str());
-	//OutputDebugString(L"y:");
-	//OutputDebugString(std::to_wstring(Caster.Origin.y).c_str());
-	//OutputDebugString(L"\n");
-	//OutputDebugString(std::to_wstring(ReadTileAt(Caster.Origin.x, Caster.Origin.y)).c_str());
-	//int idx = (int)Caster.Origin.y * Level.Width + (int)Caster.Origin.x;
-	//OutputDebugString(L"idx:");
-	//OutputDebugString(std::to_wstring(idx).c_str());
-	//OutputDebugString(L"\n");
-	//OutputDebugString(L"\n");
 
 	float done = 1.0f;
 }
@@ -578,16 +563,7 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 
 	UINT32* TexturePixel;
 	UINT32* TextureColumn = (UINT32*)tex->Memory;
-	//UINT32 textureIndex = (UINT32)(u * tex->Width);
-
 	UINT32 startTexY = 0;
-	//if (dist < 1.0)
-	//{ 
-	//	startTexY = tex->Height - (tex->Height * dist);
-	//	startTexY *= 0.5;
-	//}
-
-	//UINT32 textureIndex = (UINT32)((u * tex->Width)*tex->Bpp);
 	UINT32 textureIndex = (UINT32)(u * tex->Width);
 
 	TextureColumn += textureIndex;
