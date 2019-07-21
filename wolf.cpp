@@ -72,6 +72,7 @@ struct LevelData {
 
 	int Width = 9;
 	int Height = 8;
+	float LevelRenderHeight = 15.0f;
 
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
@@ -79,7 +80,7 @@ struct LevelData {
 		1,1,1,1,1,1,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,1,0,0,0,0,0,1,
+		1,0,0,0,2,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,1,1,1,1,1,1,1,1,
 	};
@@ -92,6 +93,7 @@ global_variable LevelData Level;
 global_variable Win32OffscreenBuffer OffscreenBuffer;
 global_variable Win32OffscreenBuffer WallTexture;
 global_variable Win32OffscreenBuffer SoldierTexture;
+global_variable int SEE_THROUGH_TILE = 2;
 global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
@@ -127,20 +129,21 @@ void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
+void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
-void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color); 
+void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color);
 
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
 	HDC context = GetDC(WindowHandle);
 	HBITMAP hbit = (HBITMAP)LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	Win32GetPixels(buffer, context, hbit);
-	ReleaseDC(0, context); 
+	ReleaseDC(0, context);
 }
 
 struct Win32RGB
@@ -289,7 +292,6 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	float nearPlane = 1.0f;
 	float farPlaneColor = 6.0f;
 
-	float LevelHeight = 15.0f;
 	float startY = 0.0f;
 
 	glm::vec2 dir = Caster.Direction;
@@ -303,7 +305,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float correction = cos(angle);
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 		float distance = 1.0 + rayRes.Distance * correction;
-		float actuallheight = LevelHeight * (wallH / distance);
+		float actuallheight = Level.LevelRenderHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;
 
@@ -312,12 +314,13 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
+		Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f,1.0,1.0);
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
 	float done = 1.0f;
-} 
+}
 
 int ReadTileAt(float x, float y)
 {
@@ -359,7 +362,8 @@ RayResult RayDistance(float px, float py, float dx, float dy)
 	{
 		pos.x += dir.x * stepLength;
 		pos.y += dir.y * stepLength;
-		hit = ReadTileAt(pos.x, pos.y) == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
+		int tile = ReadTileAt(pos.x, pos.y);
+		hit = tile == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
 	}
 
 	float uv = ReadChordRow(pos.x, pos.y);
@@ -567,6 +571,43 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	*Pixel = ((r << 16) | (g << 8) | b);
 	Pixel++;
 }
+
+//TODO care about index, for now just draw soldier
+void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy)
+{
+	UINT8* Row = (UINT8*)buffer->Memory;
+	Row += buffer->Pitch * (int)y;
+	UINT32* Pixel = (UINT32*)Row;
+	Pixel += (int)x;
+
+	auto texture = SoldierTexture;
+
+
+	for (int texY = 0; texY < texture.Height*sy; texY++)
+	{
+		for (int texX = 0; texX < texture.Width*sx; texX++)
+		{
+			int xy = ((float)texY / ((float)texture.Height*sy)) * texture.Height;
+			int xv = ((float)texX / ((float)texture.Width*sx)) * texture.Height;
+			int u =  texY;
+			int v =  texX;
+			Pixel = (UINT32*)Row;
+			Pixel += v;
+			*Pixel = *(((UINT32*)texture.Memory) + (u * texture.Width) + v);
+		}
+		Row += buffer->Pitch;
+	}
+}
+
+//UINT32 Win32GetPixel(Win32OffscreenBuffer* buffer, int x, int y)
+//{
+//	UINT8* Row = (UINT8*)buffer->Memory;
+//	Row += buffer->Pitch * (int)y;
+//
+//	UINT32* Pixel = (UINT32*)Row; 
+//	Pixel += x;
+//	return *Pixel;
+//}
 
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h)
 {
