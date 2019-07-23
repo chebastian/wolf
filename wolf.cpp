@@ -74,6 +74,7 @@ struct LevelData {
 	int Height = 8;
 	float LevelRenderHeight = 15.0f;
 	float LevelRenderWidth = 480.0f;
+	float* ZBuffer = new float[LevelRenderWidth];
 
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
@@ -296,13 +297,13 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	float startY = 0.0f;
 
+
 	glm::vec2 dir = Caster.Direction;
 	dir = glm::rotate(dir, -fov * 0.5f);
 	float angle = -fov * 0.5f;
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
-
 		angle += step;
 		float correction = cos(angle);
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
@@ -312,15 +313,17 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float offsetX = i;
 
 
+		Level.ZBuffer[i] = 1.0f + rayRes.Distance * correction;
 		//TODO fix, this should not be a arbitrary number
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawGameObject(buffer, 0, 1.5, 1.5);
 		Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
+
+	Win32DrawGameObject(buffer, 0, 5.5, 5.5);
 
 	float done = 1.0f;
 }
@@ -580,32 +583,35 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	auto pos = glm::vec2(x, y);
 	float dist = glm::distance(pos, Caster.Origin);
 	glm::vec2 dir = pos - Caster.Origin;
-	auto ndir = glm::normalize(dir);
-
-	glm::vec2 left = glm::rotate(Caster.Direction, glm::radians<float>(-Caster.Fov * 0.5));
-	left = glm::normalize(left);
-
-	glm::vec2 right = glm::rotate(Caster.Direction, glm::radians<float>(Caster.Fov * 0.5));
-	right = glm::normalize(right);
+	//glm::vec2 dir = Caster.Origin - pos;
+	//auto ndir = glm::normalize(dir);
+	auto ndir = (dir);
 
 	glm::vec2 plane = { Level.LevelRenderWidth, 0.0f };
 	auto angle = glm::atan(Caster.Direction.x, Caster.Direction.y);
-	auto rotatedPlane = glm::normalize( glm::rotate(plane, angle) );
+	auto radToPlayer = glm::atan(ndir.x, ndir.y);
+	auto addd = glm::degrees(radToPlayer - angle);
+	addd = addd > 0 ? addd : 360 + addd;
+	auto angleToPlayer = glm::degrees(radToPlayer);
+	if (addd > 180)
+		addd -= 360;
+
+
+	auto rotatedPlane = (glm::rotate(plane, angle));
+	//auto rotatedPlane = glm::normalize(glm::rotate(plane, angle));
 	auto rr = glm::dot(rotatedPlane, ndir);
 	auto deg = glm::degrees(angle);
+	auto camAngleToSpr = angleToPlayer - deg;
 
-	float dotR = glm::dot(right, ndir);
-	float dotL = glm::dot(left, ndir);
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), ndir);
 	float sz = 40.0f;
-	float hw = Level.LevelRenderWidth * 0.5f;
-	int dd = ndir.x > 0 ? 1 : -1;
-	//float px = (hw)+(hw * (dotL * (ndir.x > 0 ? 1.0f : -1.0f)));
-	//float px = hw + (dotL*hw);
-	float px = (Level.LevelRenderWidth*0.5f) -  rr * Level.LevelRenderWidth;
-	if (dotP * 90.0 <= Caster.Fov*0.5)
+	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
+	float stepSize = Level.LevelRenderWidth / Caster.Fov;
+	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
+	float px = (Level.LevelRenderWidth * 0.5f) - (addd * stepSize);
+	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		Win32DrawRect(buffer, px, 200, sz, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
+		Win32DrawRect(buffer, px, 200 + (sz * dist * 0.5f), sz, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
 	}
 }
 
