@@ -82,7 +82,7 @@ struct LevelData {
 		1,1,1,1,1,1,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,0,2,0,0,0,1,
+		1,0,0,1,1,0,1,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,1,1,1,1,1,1,1,1,
 	};
@@ -581,7 +581,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y)
 {
 	auto pos = glm::vec2(x, y);
-	float dist = glm::distance(pos, Caster.Origin);
+	float dist = 1.0f + glm::distance(pos, Caster.Origin);
 	glm::vec2 dir = pos - Caster.Origin;
 	//glm::vec2 dir = Caster.Origin - pos;
 	//auto ndir = glm::normalize(dir);
@@ -605,13 +605,24 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), ndir);
 	float sz = 40.0f;
+ 
 	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
 	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
 	float px = (Level.LevelRenderWidth * 0.5f) - (addd * stepSize);
+
+	//Render Y post
+	float actuallheight = 0.5f * (sz / dist);
+	float wallStartY = 0 + buffer->Height * 0.5 + (actuallheight * -0.5);
+		//Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		Win32DrawRect(buffer, px, 200 + (sz * dist * 0.5f), sz, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
+		for (int i = 0; i < sz; i++)
+		{
+			if (i + px < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + px)] > dist)
+				Win32DrawRect(buffer, i + px, wallStartY, 1, actuallheight, 255, 0, 0);
+				//Win32DrawRect(buffer, i + px, 200 - (sz * dist) * 0.5, 1, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
+		}
 	}
 }
 
