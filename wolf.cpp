@@ -62,7 +62,7 @@ struct WindowDimension
 struct Raycaster {
 	glm::vec2 Origin{ 5,1.5 };
 	glm::vec2 Direction{ -1,0 };
-	int Fov;
+	int Fov = 60;
 	int Near;
 	int Far;
 };
@@ -73,6 +73,7 @@ struct LevelData {
 	int Width = 9;
 	int Height = 8;
 	float LevelRenderHeight = 15.0f;
+	float LevelRenderWidth = 480.0f;
 
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
@@ -130,6 +131,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy);
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 int ReadTileAt(float x, float y);
@@ -285,8 +287,8 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
-	float res = 480.0f;
-	float fov = glm::radians<float>(60.0f);
+	float res = Level.LevelRenderWidth;
+	float fov = glm::radians<float>(Caster.Fov);
 	float step = fov / res;
 	float wallH = 64;
 	float nearPlane = 1.0f;
@@ -314,7 +316,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f,1.0,1.0);
+		Win32DrawGameObject(buffer, 0, 1.5, 1.5);
+		Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
@@ -572,9 +575,44 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel++;
 }
 
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y)
+{
+	auto pos = glm::vec2(x, y);
+	float dist = glm::distance(pos, Caster.Origin);
+	glm::vec2 dir = pos - Caster.Origin;
+	auto ndir = glm::normalize(dir);
+
+	glm::vec2 left = glm::rotate(Caster.Direction, glm::radians<float>(-Caster.Fov * 0.5));
+	left = glm::normalize(left);
+
+	glm::vec2 right = glm::rotate(Caster.Direction, glm::radians<float>(Caster.Fov * 0.5));
+	right = glm::normalize(right);
+
+	glm::vec2 plane = { Level.LevelRenderWidth, 0.0f };
+	auto angle = glm::atan(Caster.Direction.x, Caster.Direction.y);
+	auto rotatedPlane = glm::normalize( glm::rotate(plane, angle) );
+	auto rr = glm::dot(rotatedPlane, ndir);
+	auto deg = glm::degrees(angle);
+
+	float dotR = glm::dot(right, ndir);
+	float dotL = glm::dot(left, ndir);
+	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), ndir);
+	float sz = 40.0f;
+	float hw = Level.LevelRenderWidth * 0.5f;
+	int dd = ndir.x > 0 ? 1 : -1;
+	//float px = (hw)+(hw * (dotL * (ndir.x > 0 ? 1.0f : -1.0f)));
+	//float px = hw + (dotL*hw);
+	float px = (Level.LevelRenderWidth*0.5f) -  rr * Level.LevelRenderWidth;
+	if (dotP * 90.0 <= Caster.Fov*0.5)
+	{
+		Win32DrawRect(buffer, px, 200, sz, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
+	}
+}
+
 //TODO care about index, for now just draw soldier
 void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy)
 {
+	//HDC context = GetDC(WindowHandle);
 	UINT8* Row = (UINT8*)buffer->Memory;
 	Row += buffer->Pitch * (int)y;
 	UINT32* Pixel = (UINT32*)Row;
@@ -582,15 +620,23 @@ void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, floa
 
 	auto texture = SoldierTexture;
 
+	float szh = texture.Height * sy;
+	float szw = texture.Width * sx;
+	float scw = 1.0f / szw;
+	float sch = 1.0f / szh;
 
-	for (int texY = 0; texY < texture.Height*sy; texY++)
+	int hh = texture.Height * sy;
+	int ww = texture.Width * sx;
+	for (int texY = 0; texY < hh; texY++)
 	{
-		for (int texX = 0; texX < texture.Width*sx; texX++)
+		for (int texX = 0; texX < ww; texX++)
 		{
-			int xy = ((float)texY / ((float)texture.Height*sy)) * texture.Height;
-			int xv = ((float)texX / ((float)texture.Width*sx)) * texture.Height;
-			int u =  texY;
-			int v =  texX;
+			//int u = ((float)texY / (szh)) * texture.Height;
+			//int v = ((float)texX / (szw)) * texture.Width;
+			int u = ((float)texY * sch) * texture.Height;
+			int v = ((float)texX * scw) * texture.Width;
+			//int u =  texY;
+			//int v =  texX;
 			Pixel = (UINT32*)Row;
 			Pixel += v;
 			*Pixel = *(((UINT32*)texture.Memory) + (u * texture.Width) + v);
