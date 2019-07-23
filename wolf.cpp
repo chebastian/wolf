@@ -285,6 +285,7 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 	return *columnPixel;
 }
 
+global_variable float rotation;
 RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
@@ -323,7 +324,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
-	Win32DrawGameObject(buffer, 0, 5.5, 5.5);
+	rotation += 3.14 / 60;
+	Win32DrawGameObject(buffer, 0, 5.5, 5.5 + cos(rotation)*2);
 
 	float done = 1.0f;
 }
@@ -612,7 +614,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float px = (Level.LevelRenderWidth * 0.5f) - (addd * stepSize);
 
 	//Render Y post
-	float actuallheight = 0.5f * (sz / dist);
+	float actuallheight = 1.5f * (sz / dist);
 	float wallStartY = 0 + buffer->Height * 0.5 + (actuallheight * -0.5);
 		//Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
