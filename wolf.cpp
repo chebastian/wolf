@@ -343,6 +343,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	rotation += 3.14 / 60;
 	Win32DrawGameObject(buffer, 0, Projectile.x, Projectile.y);
+	Win32DrawRect(buffer, Level.LevelRenderWidth*0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
 	Projectile.x += Projectile.dx * 0.05;
 	Projectile.y += Projectile.dy * 0.05; 
@@ -613,11 +614,11 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	if (viewAngle > 180)
 		viewAngle -= 360;
  
-	float objectSize = 40.0f;
-	float correctedDist = 1.0f + glm::distance(pos, Caster.Origin);
-	float projectedHeight = Level.LevelRenderHeight * (objectSize / correctedDist);
-	float projectedWidth = (objectSize / correctedDist);
-	float startY = 64 / correctedDist;
+	float objectWidth = 40.0f;
+	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
+	float projectedHeight = Level.LevelRenderHeight * (objectWidth / projectedDist);
+	float projectedWidth = (objectWidth / projectedDist);
+	float startY = 64 / projectedDist;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
  
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
@@ -626,10 +627,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		for (int i = 0; i < objectSize/correctedDist; i++)
+		for (int i = 0; i < objectWidth/projectedDist; i++)
 		{
-			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > correctedDist)
-				Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
+			float xx = i + projectedX - (0.5f * projectedWidth);
+			double u = i / (objectWidth / projectedDist);
+			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
+				Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				//Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
 		}
 	}
 }
