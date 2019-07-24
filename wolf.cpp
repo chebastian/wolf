@@ -10,6 +10,7 @@
 #include <string>
 #include <math.h>
 #include <Xinput.h>
+#include <windowsx.h>
 #pragma comment(lib,"xinput.lib")
 
 #define MAX_LOADSTRING 100
@@ -102,6 +103,13 @@ global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
 
+//Mouse stuff
+global_variable int LastMouseX;
+global_variable bool MouseClicked;
+global_variable int LastMouseY;
+global_variable int MouseDistX;
+global_variable bool MouseMoved;
+
 
 bool IsKeyDown(char key)
 {
@@ -137,6 +145,7 @@ void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, floa
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
+void Win32UpdateMouse(LPARAM wParam);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
@@ -231,37 +240,46 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			Caster.Origin.y += -Caster.Direction.y * scalar;
 			Caster.Origin.x += -Caster.Direction.x * scalar;
 		}
-		if (IsKeyDown('e'))
+		if (IsKeyDown('d'))
 		{
 			Caster.Origin.y += Caster.Direction.x * scalar;
 			Caster.Origin.x += -Caster.Direction.y * scalar;
 		}
-		if (IsKeyDown('q'))
+		if (IsKeyDown('a'))
 		{
 			Caster.Origin.y += -Caster.Direction.x * scalar;
 			Caster.Origin.x += Caster.Direction.y * scalar;
 		}
 
-		if (IsKeyDown('k'))
+		if (IsKeyDown('k') || MouseClicked)
 		{
 			ResetProjectile(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 		}
 
-		if (IsKeyDown('a'))
-			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * -0.02f);
-		if (IsKeyDown('d'))
-			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * 0.02f);
+		if (abs(MouseDistX) > 0)
+		{
+			Caster.Direction = glm::rotate(Caster.Direction, (3.14f * 5) * -(MouseDistX / Level.LevelRenderWidth));
+		}
 
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
 		DrawLevel(&OffscreenBuffer, Level, 600, 10);
+
+		if (MouseMoved)
+		{
+			MouseMoved = false;
+			MouseDistX = 0;
+		}
+
+		MouseClicked = false;
+
 	}
 	return (int)msg.wParam;
 }
 
 global_variable GameObject Projectile;
 void ResetProjectile(float x, float y, float dx, float dy)
-{ 
+{
 	Projectile.x = x;
 	Projectile.y = y;
 	Projectile.dx = dx;
@@ -343,10 +361,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	rotation += 3.14 / 60;
 	Win32DrawGameObject(buffer, 0, Projectile.x, Projectile.y);
-	Win32DrawRect(buffer, Level.LevelRenderWidth*0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
+	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
 	Projectile.x += Projectile.dx * 0.05;
-	Projectile.y += Projectile.dy * 0.05; 
+	Projectile.y += Projectile.dy * 0.05;
 
 	float done = 1.0f;
 }
@@ -507,6 +525,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 	}
 	break;
+	case WM_MOUSEMOVE:
+		Win32UpdateMouse(lParam);
+		break;
+		
+	case WM_LBUTTONDOWN: 
+		MouseClicked = true;
+		break;
+
+	case WM_LBUTTONUP: 
+		MouseClicked = false;
+		break;
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -613,7 +643,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	auto angleToPlayer = glm::degrees(angleToObject);
 	if (viewAngle > 180)
 		viewAngle -= 360;
- 
+
 	float objectHeight = 32.0f;
 	float objectWidth = 128.0f;
 	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
@@ -621,20 +651,20 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float projectedWidth = (objectWidth / projectedDist);
 	float startY = 64 / projectedDist;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
- 
+
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) - (viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		for (int i = 0; i < objectWidth/projectedDist; i++)
+		for (int i = 0; i < objectWidth / projectedDist; i++)
 		{
 			float xx = i + projectedX - (0.5f * projectedWidth);
 			double u = i / (objectWidth / projectedDist);
 			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
 			{
-				Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
+				Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
 				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
 			}
 		}
@@ -746,7 +776,7 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
-		*Pixel = ((r << 16) | (g << 8) | b);
+			*Pixel = ((r << 16) | (g << 8) | b);
 			Pixel++;
 		}
 
@@ -828,6 +858,16 @@ void InitializeKeys()
 	Keys = new char[25];
 	for (int i = 0; i < 25; i++)
 		Keys[i] = false;
+}
+
+void Win32UpdateMouse(LPARAM lParam)
+{
+	int x = GET_X_LPARAM(lParam);
+	int y = GET_Y_LPARAM(lParam);
+	MouseDistX = LastMouseX - x; 
+	MouseMoved = true;
+	LastMouseX = x;
+	LastMouseY = y;
 }
 
 void Win32UpdateKeyState(WPARAM wParam, bool isDown)
