@@ -614,24 +614,25 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 		viewAngle -= 360;
  
 
-	float stepSize = Level.LevelRenderWidth / Caster.Fov;
-	float px = (Level.LevelRenderWidth * 0.5f) - (viewAngle * stepSize);
 
 	//Render Y post
-	float sz = 40.0f;
-	float dist = 1.0f + glm::distance(pos, Caster.Origin);
-	float actuallheight = Level.LevelRenderHeight * (sz / dist);
-	float actuallWidth = (sz / dist);
-	float startY = 64 / dist;
-	float wallStartY = (buffer->Height * 0.5) + ((actuallheight * -0.5) + startY);
+	float objectSize = 40.0f;
+	float correctedDist = 1.0f + glm::distance(pos, Caster.Origin);
+	float projectedHeight = Level.LevelRenderHeight * (objectSize / correctedDist);
+	float projectedWidth = (objectSize / correctedDist);
+	float startY = 64 / correctedDist;
+	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
+ 
+	float stepSize = Level.LevelRenderWidth / Caster.Fov;
+	float projectedX = (Level.LevelRenderWidth * 0.5f) - (viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		for (int i = 0; i < sz/dist; i++)
+		for (int i = 0; i < objectSize/correctedDist; i++)
 		{
-			if (i + px < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + px)] > dist)
-				Win32DrawRect(buffer, i + px - (0.5f*actuallWidth), wallStartY + startY, 1, actuallheight, 255, 0, 0);
+			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > correctedDist)
+				Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
 		}
 	}
 }
