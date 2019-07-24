@@ -31,6 +31,8 @@ struct GameObject
 {
 	float x;
 	float y;
+	float dx;
+	float dy;
 	int SpriteIndex;
 };
 
@@ -140,6 +142,7 @@ void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
 void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color);
+void ResetProjectile(float x, float y, float dx, float dy);
 
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
@@ -239,6 +242,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			Caster.Origin.x += Caster.Direction.y * scalar;
 		}
 
+		if (IsKeyDown('k'))
+		{
+			ResetProjectile(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
+		}
+
 		if (IsKeyDown('a'))
 			Caster.Direction = glm::rotate(Caster.Direction, 3.14f * -0.02f);
 		if (IsKeyDown('d'))
@@ -249,6 +257,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		DrawLevel(&OffscreenBuffer, Level, 600, 10);
 	}
 	return (int)msg.wParam;
+}
+
+global_variable GameObject Projectile;
+void ResetProjectile(float x, float y, float dx, float dy)
+{ 
+	Projectile.x = x;
+	Projectile.y = y;
+	Projectile.dx = dx;
+	Projectile.dy = dy;
 }
 
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int offsety)
@@ -325,7 +342,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	}
 
 	rotation += 3.14 / 60;
-	Win32DrawGameObject(buffer, 0, 5.5, 5.5 + cos(rotation)*2);
+	Win32DrawGameObject(buffer, 0, Projectile.x, Projectile.y);
+
+	Projectile.x += Projectile.dx * 0.05;
+	Projectile.y += Projectile.dy * 0.05; 
 
 	float done = 1.0f;
 }
@@ -585,8 +605,6 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	auto pos = glm::vec2(x, y);
 	float dist = 1.0f + glm::distance(pos, Caster.Origin);
 	glm::vec2 dir = pos - Caster.Origin;
-	//glm::vec2 dir = Caster.Origin - pos;
-	//auto ndir = glm::normalize(dir);
 	auto ndir = (dir);
 
 	glm::vec2 plane = { Level.LevelRenderWidth, 0.0f };
@@ -600,30 +618,27 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 
 
 	auto rotatedPlane = (glm::rotate(plane, angle));
-	//auto rotatedPlane = glm::normalize(glm::rotate(plane, angle));
 	auto rr = glm::dot(rotatedPlane, ndir);
 	auto deg = glm::degrees(angle);
 	auto camAngleToSpr = angleToPlayer - deg;
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), ndir);
 	float sz = 40.0f;
- 
-	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
+
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
-	//float px = (Level.LevelRenderWidth * 0.5f) + (rr * Level.LevelRenderWidth);
 	float px = (Level.LevelRenderWidth * 0.5f) - (addd * stepSize);
 
 	//Render Y post
-	float actuallheight = 1.5f * (sz / dist);
-	float wallStartY = 0 + buffer->Height * 0.5 + (actuallheight * -0.5);
-		//Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+	float actuallheight = Level.LevelRenderHeight * (sz / dist);
+	float actuallWidth = (sz / dist);
+	float startY = 64 / dist;
+	float wallStartY = (buffer->Height * 0.5) + ((actuallheight * -0.5) + startY);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		for (int i = 0; i < sz; i++)
+		for (int i = 0; i < sz/dist; i++)
 		{
 			if (i + px < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + px)] > dist)
-				Win32DrawRect(buffer, i + px, wallStartY, 1, actuallheight, 255, 0, 0);
-				//Win32DrawRect(buffer, i + px, 200 - (sz * dist) * 0.5, 1, Level.LevelRenderHeight * sz / dist, 255, 0, 0);
+				Win32DrawRect(buffer, i + px - (0.5f*actuallWidth), wallStartY + startY, 1, actuallheight, 255, 0, 0);
 		}
 	}
 }
@@ -733,7 +748,7 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
-			*Pixel = ((r << 16) | (g << 8) | b);
+		*Pixel = ((r << 16) | (g << 8) | b);
 			Pixel++;
 		}
 
