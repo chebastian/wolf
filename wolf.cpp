@@ -613,9 +613,6 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	if (viewAngle > 180)
 		viewAngle -= 360;
  
-
-
-	//Render Y post
 	float objectSize = 40.0f;
 	float correctedDist = 1.0f + glm::distance(pos, Caster.Origin);
 	float projectedHeight = Level.LevelRenderHeight * (objectSize / correctedDist);
