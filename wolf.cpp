@@ -603,11 +603,8 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y)
 {
 	auto pos = glm::vec2(x, y);
-	float dist = 1.0f + glm::distance(pos, Caster.Origin);
-	glm::vec2 dir = pos - Caster.Origin;
-	auto ndir = (dir);
+	glm::vec2 ndir = pos - Caster.Origin;
 
-	glm::vec2 plane = { Level.LevelRenderWidth, 0.0f };
 	auto angle = glm::atan(Caster.Direction.x, Caster.Direction.y);
 	auto radToPlayer = glm::atan(ndir.x, ndir.y);
 	auto addd = glm::degrees(radToPlayer - angle);
@@ -615,20 +612,15 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	auto angleToPlayer = glm::degrees(radToPlayer);
 	if (addd > 180)
 		addd -= 360;
-
-
-	auto rotatedPlane = (glm::rotate(plane, angle));
-	auto rr = glm::dot(rotatedPlane, ndir);
-	auto deg = glm::degrees(angle);
-	auto camAngleToSpr = angleToPlayer - deg;
-
+ 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), ndir);
-	float sz = 40.0f;
 
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
 	float px = (Level.LevelRenderWidth * 0.5f) - (addd * stepSize);
 
 	//Render Y post
+	float sz = 40.0f;
+	float dist = 1.0f + glm::distance(pos, Caster.Origin);
 	float actuallheight = Level.LevelRenderHeight * (sz / dist);
 	float actuallWidth = (sz / dist);
 	float startY = 64 / dist;
