@@ -81,10 +81,10 @@ struct LevelData {
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,1,
-		1,1,1,1,1,1,0,0,1,
+		1,1,0,1,0,1,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
-		1,0,0,1,1,0,1,0,1,
+		1,0,1,0,1,0,1,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,1,1,1,1,1,1,1,1,
 	};
@@ -614,9 +614,10 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	if (viewAngle > 180)
 		viewAngle -= 360;
  
-	float objectWidth = 40.0f;
+	float objectHeight = 32.0f;
+	float objectWidth = 128.0f;
 	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
-	float projectedHeight = Level.LevelRenderHeight * (objectWidth / projectedDist);
+	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
 	float projectedWidth = (objectWidth / projectedDist);
 	float startY = 64 / projectedDist;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
@@ -632,8 +633,10 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 			float xx = i + projectedX - (0.5f * projectedWidth);
 			double u = i / (objectWidth / projectedDist);
 			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
-				Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				//Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
+			{
+				Win32DrawRect(buffer, i + projectedX - (0.5f*projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
+				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
+			}
 		}
 	}
 }
