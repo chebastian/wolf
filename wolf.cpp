@@ -82,7 +82,7 @@ struct LevelData {
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,1,
-		1,1,0,1,0,1,0,0,1,
+		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,1,
 		1,0,1,0,1,0,1,0,1,
@@ -295,15 +295,22 @@ void ResetProjectile(float x, float y, float dx, float dy)
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int offsety)
 {
 	int sz = 16;
+	int off = 1;
 	for (int i = 0; i < level.Width * level.Height; i++)
 	{
 		int x = (i % level.Width);
 		int y = (i / level.Width);
 
 		if (level.data[i] == SOLID_TILE)
-			Win32DrawRect(buffer, offsetx + x * sz, offsety + y * sz, sz, sz, 127, 0, 255);
+		{
+			Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
+			Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 127, 0, 255);
+		}
 		else
-			Win32DrawRect(buffer, offsetx + x * sz, offsety + y * sz, sz, sz, 0, 0, 255);
+		{
+			Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
+			Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 0, 0, 255);
+		}
 	}
 
 	int playerX = (Caster.Origin.x / (float)level.Width) * level.Width * sz;
@@ -653,12 +660,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	debugPrint("angleToObj: " + std::to_string(angleToObject));
 	//debugPrint(L"lookingAngle: " + lookingAngle);
 
-	float objectHeight = 32.0f;
-	float objectWidth = 128.0f;
+	float objectHeight = 64.0f;
+	float objectWidth = 64.0f;
 	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
+	projectedDist *= cos(glm::radians(viewAngle));
 	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
-	float projectedWidth = (objectWidth / projectedDist);
-	float startY = 64 / projectedDist;
+	float projectedWidth = Level.LevelRenderHeight * (objectWidth / projectedDist);
+	float startY = 0;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
 
 	debugPrint("dist: " + std::to_string(projectedDist));
@@ -668,14 +676,17 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
 	{
-		for (int i = 0; i < objectWidth / projectedDist; i++)
+		for (int i = 0; i < projectedWidth; i++)
 		{
 			float xx = i + projectedX - (0.5f * projectedWidth);
-			double u = i / (objectWidth / projectedDist);
-			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
+			//double u = i / (objectWidth / projectedDist);
+			double u = i / projectedWidth;
+			//if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
+			//if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)xx] > projectedDist)
+			if(Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				//Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
 				Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				////Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0); 
 			}
 		}
 	}
@@ -752,6 +763,14 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 			continue;
 		}
 
+		if (OffsetX < 0 || OffsetY < 0 ||
+			OffsetX > buffer->Width || OffsetY > buffer->Height ||
+			OffsetX > buffer->Width || OffsetY + h > buffer->Height)
+		{
+			Row += buffer->Pitch;
+			continue; 
+		}
+
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
 		double texy = std::max(1, y);
@@ -779,6 +798,11 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 {
 	UINT32* Pixel;
 	UINT8* Row = (UINT8*)buffer->Memory;;
+
+	if (OffsetX < 0 || OffsetY < 0 ||
+		OffsetX > buffer->Width || OffsetY > buffer->Height ||
+		OffsetX + w > buffer->Width || OffsetY + h > buffer->Height)
+		return;
 
 	Row += buffer->Pitch * OffsetY;
 
