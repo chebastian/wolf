@@ -91,6 +91,7 @@ struct LevelData {
 	};
 };
 
+global_variable std::wstring debugString;
 global_variable char* Keys;
 global_variable HWND WindowHandle;
 global_variable Raycaster Caster;
@@ -152,6 +153,8 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
 void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color);
 void ResetProjectile(float x, float y, float dx, float dy);
+void debugPrint(std::string str);
+void PrintDebugString(int x, int y);
 
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
@@ -272,6 +275,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		MouseClicked = false;
+		PrintDebugString(600, 10);
+
+		debugString.clear();
 
 	}
 	return (int)msg.wParam;
@@ -354,7 +360,6 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
@@ -362,9 +367,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	rotation += 3.14 / 60;
 	Win32DrawGameObject(buffer, 0, Projectile.x, Projectile.y);
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
+	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
-	Projectile.x += Projectile.dx * 0.05;
-	Projectile.y += Projectile.dy * 0.05;
+	//Projectile.x += Projectile.dx * 0.05;
+	//Projectile.y += Projectile.dy * 0.05;
 
 	float done = 1.0f;
 }
@@ -528,12 +534,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		Win32UpdateMouse(lParam);
 		break;
-		
-	case WM_LBUTTONDOWN: 
+
+	case WM_LBUTTONDOWN:
 		MouseClicked = true;
 		break;
 
-	case WM_LBUTTONUP: 
+	case WM_LBUTTONUP:
 		MouseClicked = false;
 		break;
 
@@ -640,9 +646,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
 	auto viewAngle = glm::degrees(angleToObject - lookingAngle);
 	viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
-	auto angleToPlayer = glm::degrees(angleToObject);
 	if (viewAngle > 180)
 		viewAngle -= 360;
+
+	debugPrint("lookingAngle: " + std::to_string(lookingAngle));
+	debugPrint("angleToObj: " + std::to_string(angleToObject));
+	//debugPrint(L"lookingAngle: " + lookingAngle);
 
 	float objectHeight = 32.0f;
 	float objectWidth = 128.0f;
@@ -652,8 +661,9 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float startY = 64 / projectedDist;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
 
+	debugPrint("dist: " + std::to_string(projectedDist));
 	float stepSize = Level.LevelRenderWidth / Caster.Fov;
-	float projectedX = (Level.LevelRenderWidth * 0.5f) - (viewAngle * stepSize);
+	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 	if (dotP * 90.0 <= Caster.Fov * 0.5)
@@ -664,11 +674,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 			double u = i / (objectWidth / projectedDist);
 			if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
 			{
-				Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
-				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				//Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0);
+				Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
 			}
 		}
 	}
+
 }
 
 //TODO care about index, for now just draw soldier
@@ -748,7 +759,8 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		inTextureY = std::min((int)inTextureY, tex->Height);
 		auto textureOffset = inTextureY * tex->Height;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
-		*Pixel = (UINT32)((*TexturePixel));
+		if (*TexturePixel != 0xFF00Ff)
+			* Pixel = (UINT32)((*TexturePixel));
 		Row += buffer->Pitch;
 	}
 
@@ -851,6 +863,29 @@ void printInput(WPARAM wParam)
 	ReleaseDC(WindowHandle, context);
 }
 
+
+void debugPrint(std::string str)
+{
+	HDC context = GetDC(WindowHandle);
+	int charWidth = 0;
+	//GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
+	//TextOut(context, x, y, str.c_str(), str.size());
+	debugString += std::wstring(str.begin(), str.end());
+	debugString += L"\n";
+
+	ReleaseDC(WindowHandle, context);
+}
+
+void PrintDebugString(int x, int y)
+{
+	HDC context = GetDC(WindowHandle);
+	int charWidth = 0;
+	//GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
+
+	TextOut(context, x, y, debugString.c_str(), debugString.size());
+	ReleaseDC(WindowHandle, context);
+}
+
 void InitializeKeys()
 {
 	if (Keys)
@@ -864,7 +899,7 @@ void Win32UpdateMouse(LPARAM lParam)
 {
 	int x = GET_X_LPARAM(lParam);
 	int y = GET_Y_LPARAM(lParam);
-	MouseDistX = LastMouseX - x; 
+	MouseDistX = LastMouseX - x;
 	MouseMoved = true;
 	LastMouseX = x;
 	LastMouseY = y;
