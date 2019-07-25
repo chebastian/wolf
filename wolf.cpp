@@ -98,7 +98,18 @@ global_variable Raycaster Caster;
 global_variable LevelData Level;
 global_variable Win32OffscreenBuffer OffscreenBuffer;
 global_variable Win32OffscreenBuffer WallTexture;
+
 global_variable Win32OffscreenBuffer SoldierTexture;
+global_variable Win32OffscreenBuffer SoldierTexture1;
+global_variable Win32OffscreenBuffer SoldierTexture2;
+global_variable Win32OffscreenBuffer SoldierTexture3;
+global_variable Win32OffscreenBuffer SoldierTexture4;
+global_variable Win32OffscreenBuffer SoldierTexture5;
+global_variable Win32OffscreenBuffer SoldierTexture6;
+global_variable Win32OffscreenBuffer SoldierTexture7;
+
+global_variable Win32OffscreenBuffer* sprites;
+
 global_variable int SEE_THROUGH_TILE = 2;
 global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
@@ -143,7 +154,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy);
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y);
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void Win32UpdateMouse(LPARAM wParam);
@@ -207,7 +218,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	InitializeKeys();
 
 	LoadBufferFromImage(&WallTexture, L"wall.bmp");
-	LoadBufferFromImage(&SoldierTexture, L"soldier.bmp");
+
+	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
+	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
+	LoadBufferFromImage(&SoldierTexture2, L"soldier_2.bmp");
+	LoadBufferFromImage(&SoldierTexture3, L"soldier_3.bmp");
+	LoadBufferFromImage(&SoldierTexture4, L"soldier_4.bmp");
+	LoadBufferFromImage(&SoldierTexture5, L"soldier_5.bmp");
+	LoadBufferFromImage(&SoldierTexture6, L"soldier_6.bmp");
+	LoadBufferFromImage(&SoldierTexture7, L"soldier_7.bmp");
+
+	sprites = new Win32OffscreenBuffer[8];
+	sprites[0] = SoldierTexture;
+	sprites[1] = SoldierTexture1;
+	sprites[2] = SoldierTexture2;
+	sprites[3] = SoldierTexture3;
+	sprites[4] = SoldierTexture4;
+	sprites[5] = SoldierTexture5;
+	sprites[6] = SoldierTexture6;
+	sprites[7] = SoldierTexture7;
 
 	int xOffset = 0;
 	int yOffset = 0;
@@ -372,7 +401,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	}
 
 	rotation += 3.14 / 60;
-	Win32DrawGameObject(buffer, 0, Projectile.x, Projectile.y);
+	GameObject obj = { Projectile.x, Projectile.y,0.0f, 0.0f, 0 };
+	Win32DrawGameObject(buffer, obj);
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
@@ -644,9 +674,9 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel++;
 }
 
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, float y)
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object)
 {
-	auto pos = glm::vec2(x, y);
+	auto pos = glm::vec2(object.x, object.y);
 	glm::vec2 dirToObject = pos - Caster.Origin;
 
 	auto lookingAngle = glm::atan(Caster.Direction.x, Caster.Direction.y);
@@ -656,12 +686,19 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	if (viewAngle > 180)
 		viewAngle -= 360;
 
+	int angleIdx = glm::degrees( angleToObject );
+	if (angleIdx < 0)
+		angleIdx += 360;
+
+	angleIdx /= (360 / 8);
+	debugPrint("angelIdx: " + std::to_string(angleIdx));
+
 	debugPrint("lookingAngle: " + std::to_string(lookingAngle));
 	debugPrint("angleToObj: " + std::to_string(angleToObject));
 	//debugPrint(L"lookingAngle: " + lookingAngle);
 
 	float objectHeight = 64.0f;
-	float objectWidth = 64.0f;
+	float objectWidth = 32.0f;
 	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
 	projectedDist *= cos(glm::radians(viewAngle));
 	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
@@ -674,19 +711,19 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, int objectId, float x, fl
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
-	if (dotP * 90.0 <= Caster.Fov * 0.5)
+
+	Win32OffscreenBuffer* sprBuffer = sprites;
+	sprBuffer += angleIdx;
+	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
 		{
 			float xx = i + projectedX - (0.5f * projectedWidth);
-			//double u = i / (objectWidth / projectedDist);
 			double u = i / projectedWidth;
-			//if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)(i + projectedX)] > projectedDist)
-			//if (i + projectedX < Level.LevelRenderWidth && Level.ZBuffer[(int)xx] > projectedDist)
 			if(Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				////Win32DrawRect(buffer, i + projectedX - (0.5f * projectedWidth), projectedY + startY, 1, projectedHeight, 255, 0, 0); 
+				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
 			}
 		}
 	}
@@ -763,13 +800,13 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 			continue;
 		}
 
-		if (OffsetX < 0 || OffsetY < 0 ||
-			OffsetX > buffer->Width || OffsetY > buffer->Height ||
-			OffsetX > buffer->Width || OffsetY + h > buffer->Height)
-		{
-			Row += buffer->Pitch;
-			continue; 
-		}
+		//if (OffsetX < 0 || OffsetY < 0 ||
+		//	OffsetX > buffer->Width || OffsetY > buffer->Height ||
+		//	OffsetX > buffer->Width || OffsetY + h > buffer->Height)
+		//{
+		//	Row += buffer->Pitch;
+		//	continue; 
+		//}
 
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
