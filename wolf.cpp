@@ -121,6 +121,7 @@ global_variable bool MouseClicked;
 global_variable int LastMouseY;
 global_variable int MouseDistX;
 global_variable bool MouseMoved;
+global_variable GameObject Soldier = { 3.0f, 2.0f,0.0f, 1.0f, 1.0 };
 
 
 bool IsKeyDown(char key)
@@ -400,14 +401,17 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
-	rotation += 3.14 / 60;
-	GameObject obj = { Projectile.x, Projectile.y,0.0f, 0.0f, 0 };
-	Win32DrawGameObject(buffer, obj);
+	rotation += (3.14 / 60) * 0.05;
+	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
+	Win32DrawGameObject(buffer, Soldier);
+
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
-	//Projectile.x += Projectile.dx * 0.05;
-	//Projectile.y += Projectile.dy * 0.05;
+	Soldier.dx = Caster.Direction.x;
+	Soldier.dy = Caster.Direction.y;
+	Soldier.x += Soldier.dx * -0.005;
+	Soldier.y += Soldier.dy * -0.005;
 
 	float done = 1.0f;
 }
@@ -674,9 +678,9 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel++;
 }
 
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object)
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 {
-	auto pos = glm::vec2(object.x, object.y);
+	auto pos = glm::vec2(entity.x, entity.y);
 	glm::vec2 dirToObject = pos - Caster.Origin;
 
 	auto lookingAngle = glm::atan(Caster.Direction.x, Caster.Direction.y);
@@ -686,7 +690,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object)
 	if (viewAngle > 180)
 		viewAngle -= 360;
 
-	int angleIdx = glm::degrees( angleToObject );
+	int angleIdx = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 	if (angleIdx < 0)
 		angleIdx += 360;
 
@@ -720,7 +724,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object)
 		{
 			float xx = i + projectedX - (0.5f * projectedWidth);
 			double u = i / projectedWidth;
-			if(Level.ZBuffer[(int)xx] > projectedDist)
+			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
 				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
 				Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
@@ -799,20 +803,12 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 			Row += buffer->Pitch;
 			continue;
 		}
-
-		//if (OffsetX < 0 || OffsetY < 0 ||
-		//	OffsetX > buffer->Width || OffsetY > buffer->Height ||
-		//	OffsetX > buffer->Width || OffsetY + h > buffer->Height)
-		//{
-		//	Row += buffer->Pitch;
-		//	continue; 
-		//}
-
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
-		double texy = std::max(1, y);
-		UINT32 inTextureY = (tex->Height - startTexY) * ((startTexY + texy) / ((double)h));
-		inTextureY = std::min((int)inTextureY, tex->Height);
+		UINT32 inTextureY = (tex->Height - startTexY) * ((startTexY + y) / ((double)h));
+		if (inTextureY > tex->Height)
+			continue;
+
 		auto textureOffset = inTextureY * tex->Height;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
 		if (*TexturePixel != 0xFF00Ff)
