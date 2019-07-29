@@ -8,6 +8,7 @@
 #include "wolf.h"
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <math.h>
 #include <Xinput.h>
 #include <windowsx.h>
@@ -91,7 +92,7 @@ struct LevelData {
 	};
 };
 
-global_variable std::wstring debugString;
+global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable HWND WindowHandle;
 global_variable Raycaster Caster;
@@ -923,23 +924,21 @@ void printInput(WPARAM wParam)
 
 void debugPrint(std::string str)
 {
-	HDC context = GetDC(WindowHandle);
-	int charWidth = 0;
-	//GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
-	//TextOut(context, x, y, str.c_str(), str.size());
-	debugString += std::wstring(str.begin(), str.end());
-	debugString += L"\n";
-
-	ReleaseDC(WindowHandle, context);
+	debugString.push_back(std::wstring(str.begin(), str.end()));
 }
 
 void PrintDebugString(int x, int y)
 {
 	HDC context = GetDC(WindowHandle);
 	int charWidth = 0;
-	//GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
 
-	TextOut(context, x, y, debugString.c_str(), debugString.size());
+	int py = y;
+	for (int i = 0; i < debugString.size(); i++)
+	{
+		TextOut(context, x, py, debugString[i].c_str(), debugString[i].size());
+		py += 18;
+	}
+
 	ReleaseDC(WindowHandle, context);
 }
 
