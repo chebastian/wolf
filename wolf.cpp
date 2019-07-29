@@ -56,6 +56,14 @@ struct Win32OffscreenBuffer
 	int Pitch = Width * Bpp;
 };
 
+struct StaticSprites
+{
+	Win32OffscreenBuffer Pillar;
+	Win32OffscreenBuffer Barell;
+	Win32OffscreenBuffer Treaure;
+	Win32OffscreenBuffer Well;
+};
+
 struct WindowDimension
 {
 	int Width;
@@ -147,6 +155,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+void LoadWolfResources();
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
 void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
@@ -218,27 +227,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
 	InitializeKeys();
+	LoadWolfResources();
 
-	LoadBufferFromImage(&WallTexture, L"wall.bmp");
-
-	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
-	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
-	LoadBufferFromImage(&SoldierTexture2, L"soldier_2.bmp");
-	LoadBufferFromImage(&SoldierTexture3, L"soldier_3.bmp");
-	LoadBufferFromImage(&SoldierTexture4, L"soldier_4.bmp");
-	LoadBufferFromImage(&SoldierTexture5, L"soldier_5.bmp");
-	LoadBufferFromImage(&SoldierTexture6, L"soldier_6.bmp");
-	LoadBufferFromImage(&SoldierTexture7, L"soldier_7.bmp");
-
-	sprites = new Win32OffscreenBuffer[8];
-	sprites[0] = SoldierTexture;
-	sprites[1] = SoldierTexture1;
-	sprites[2] = SoldierTexture2;
-	sprites[3] = SoldierTexture3;
-	sprites[4] = SoldierTexture4;
-	sprites[5] = SoldierTexture5;
-	sprites[6] = SoldierTexture6;
-	sprites[7] = SoldierTexture7;
 
 	int xOffset = 0;
 	int yOffset = 0;
@@ -351,6 +341,29 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 
 	Win32DrawRect(buffer, playerX, playerY, 3, 3, 255, 0, 0);
 	Win32DrawRect(buffer, playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
+}
+
+void LoadWolfResources()
+{
+	LoadBufferFromImage(&WallTexture, L"wall.bmp"); 
+	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
+	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
+	LoadBufferFromImage(&SoldierTexture2, L"soldier_2.bmp");
+	LoadBufferFromImage(&SoldierTexture3, L"soldier_3.bmp");
+	LoadBufferFromImage(&SoldierTexture4, L"soldier_4.bmp");
+	LoadBufferFromImage(&SoldierTexture5, L"soldier_5.bmp");
+	LoadBufferFromImage(&SoldierTexture6, L"soldier_6.bmp");
+	LoadBufferFromImage(&SoldierTexture7, L"soldier_7.bmp");
+
+	sprites = new Win32OffscreenBuffer[8];
+	sprites[0] = SoldierTexture;
+	sprites[1] = SoldierTexture1;
+	sprites[2] = SoldierTexture2;
+	sprites[3] = SoldierTexture3;
+	sprites[4] = SoldierTexture4;
+	sprites[5] = SoldierTexture5;
+	sprites[6] = SoldierTexture6;
+	sprites[7] = SoldierTexture7;
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
