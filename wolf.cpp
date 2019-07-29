@@ -131,6 +131,7 @@ global_variable int LastMouseY;
 global_variable int MouseDistX;
 global_variable bool MouseMoved;
 global_variable GameObject Soldier = { 3.0f, 2.0f,0.0f, 1.0f, 1.0 };
+global_variable StaticSprites Sprites;
 
 
 bool IsKeyDown(char key)
@@ -363,7 +364,13 @@ void LoadWolfResources()
 	sprites[4] = SoldierTexture4;
 	sprites[5] = SoldierTexture5;
 	sprites[6] = SoldierTexture6;
-	sprites[7] = SoldierTexture7;
+	sprites[7] = SoldierTexture7; 
+
+	Sprites = StaticSprites();
+	LoadBufferFromImage(&Sprites.Barell, L"barell.bmp");
+	LoadBufferFromImage(&Sprites.Well, L"well.bmp");
+	LoadBufferFromImage(&Sprites.Treaure, L"treasure.bmp");
+	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
