@@ -106,7 +106,7 @@ struct LevelData {
 		1,1,1,1,1,1,1,1,1,
 	};
 
-	std::vector<GameObject> Objects;
+	std::vector<GameObject> Entitys;
 };
 
 global_variable std::vector<std::wstring> debugString;
@@ -145,7 +145,8 @@ global_variable bool MouseClicked;
 global_variable int LastMouseY;
 global_variable int MouseDistX;
 global_variable bool MouseMoved;
-global_variable GameObject Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
+global_variable GameObject Soldier;
+global_variable GameObject Treasure;
 global_variable std::vector<Sprite> SpriteMap;
 global_variable StaticSprites Sprites;
 
@@ -179,6 +180,7 @@ void ResetProjectile(float x, float y, float dx, float dy);
 void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
+float GetProjectedDistance(GameObject entity);
 
 Sprite CreateSprite(std::wstring src)
 {
@@ -409,7 +411,14 @@ void LoadWolfResources()
 	SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
 	SpriteMap.push_back(Sprite{ Sprites.Well,false,1 });
 	SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
-	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites }); 
+	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
+
+	Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
+	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
+
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
+	Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
+	Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
@@ -463,16 +472,18 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	rotation += (3.14 / 60) * 0.05;
 	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
-	Win32DrawGameObject(buffer, Soldier);
 
+	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [](GameObject a, GameObject b) -> bool { 
+		return GetProjectedDistance(a) > GetProjectedDistance(b);
+		}); 
 
+	for (GameObject item : Level.Entitys)
+	{
+		Win32DrawGameObject(buffer, item);
+	}
+ 
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
-
-	//Soldier.dx = Caster.Direction.x;
-	//Soldier.dy = Caster.Direction.y;
-	//Soldier.x += Soldier.dx * -0.005;
-	//Soldier.y += Soldier.dy * -0.005;
 
 	float done = 1.0f;
 }
@@ -737,6 +748,23 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 	Pixel += (x);
 	*Pixel = ((r << 16) | (g << 8) | b);
 	Pixel++;
+}
+
+float GetProjectedDistance(GameObject entity)
+{ 
+	auto pos = glm::vec2(entity.x, entity.y);
+	glm::vec2 dirToObject = pos - Caster.Origin;
+
+	auto lookingAngle = glm::atan(Caster.Direction.x, Caster.Direction.y);
+	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
+	auto viewAngle = glm::degrees(angleToObject - lookingAngle);
+	viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
+	if (viewAngle > 180)
+		viewAngle -= 360; 
+
+	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
+	projectedDist *= cos(glm::radians(viewAngle));
+	return projectedDist;
 }
 
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
