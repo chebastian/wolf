@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <memory>
 #include <math.h>
 #include <Xinput.h>
 #include <windowsx.h>
@@ -56,11 +57,18 @@ struct Win32OffscreenBuffer
 	int Pitch = Width * Bpp;
 };
 
+struct Sprite {
+	Win32OffscreenBuffer Buffer;
+	bool HasDirectionSprites;
+	int DirectionCount;
+	Win32OffscreenBuffer* Frames;
+};
+
 struct StaticSprites
 {
 	Win32OffscreenBuffer Pillar;
 	Win32OffscreenBuffer Barell;
-	Win32OffscreenBuffer Treaure;
+	Win32OffscreenBuffer Treasure;
 	Win32OffscreenBuffer Well;
 };
 
@@ -87,7 +95,6 @@ struct LevelData {
 	float LevelRenderHeight = 15.0f;
 	float LevelRenderWidth = 480.0f;
 	float* ZBuffer = new float[LevelRenderWidth];
-
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,1,
@@ -98,6 +105,8 @@ struct LevelData {
 		1,0,0,0,0,0,0,0,1,
 		1,1,1,1,1,1,1,1,1,
 	};
+
+	std::vector<GameObject> Objects;
 };
 
 global_variable std::vector<std::wstring> debugString;
@@ -124,32 +133,23 @@ global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
 
+global_variable const int Spr_Barell = 0;
+global_variable const int Spr_Treasure = 1;
+global_variable const int Spr_Well = 2;
+global_variable const int Spr_Pillar = 3;
+global_variable const int Spr_Soldier = 4;
+
 //Mouse stuff
 global_variable int LastMouseX;
 global_variable bool MouseClicked;
 global_variable int LastMouseY;
 global_variable int MouseDistX;
 global_variable bool MouseMoved;
-global_variable GameObject Soldier = { 3.0f, 2.0f,0.0f, 1.0f, 1.0 };
+global_variable GameObject Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
+global_variable std::vector<Sprite> SpriteMap;
 global_variable StaticSprites Sprites;
 
 
-bool IsKeyDown(char key)
-{
-	return Keys[key - 'a'];
-}
-
-WindowDimension GetWindowDimension(HWND hWnd)
-{
-	RECT theRect;
-	GetClientRect(hWnd, &theRect);
-	return WindowDimension{ theRect.right - theRect.left, theRect.bottom - theRect.top };
-}
-
-struct TextureBuffer
-{
-	int stuff;
-};
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -178,7 +178,34 @@ void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, i
 void ResetProjectile(float x, float y, float dx, float dy);
 void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
+void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 
+Sprite CreateSprite(std::wstring src)
+{
+	Sprite spr;
+	LoadBufferFromImage(&spr.Buffer, src.c_str());
+	spr.DirectionCount = 1;
+	spr.HasDirectionSprites = false;
+	return spr;
+}
+
+
+bool IsKeyDown(char key)
+{
+	return Keys[key - 'a'];
+}
+
+WindowDimension GetWindowDimension(HWND hWnd)
+{
+	RECT theRect;
+	GetClientRect(hWnd, &theRect);
+	return WindowDimension{ theRect.right - theRect.left, theRect.bottom - theRect.top };
+}
+
+struct TextureBuffer
+{
+	int stuff;
+};
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
 	HDC context = GetDC(WindowHandle);
@@ -346,7 +373,7 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 
 void LoadWolfResources()
 {
-	LoadBufferFromImage(&WallTexture, L"wall.bmp"); 
+	LoadBufferFromImage(&WallTexture, L"wall.bmp");
 	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
 	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
 	LoadBufferFromImage(&SoldierTexture2, L"soldier_2.bmp");
@@ -356,6 +383,12 @@ void LoadWolfResources()
 	LoadBufferFromImage(&SoldierTexture6, L"soldier_6.bmp");
 	LoadBufferFromImage(&SoldierTexture7, L"soldier_7.bmp");
 
+
+	LoadBufferFromImage(&Sprites.Barell, L"barell.bmp");
+	LoadBufferFromImage(&Sprites.Well, L"well.bmp");
+	LoadBufferFromImage(&Sprites.Treasure, L"treasure.bmp");
+	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
+
 	sprites = new Win32OffscreenBuffer[8];
 	sprites[0] = SoldierTexture;
 	sprites[1] = SoldierTexture1;
@@ -364,13 +397,19 @@ void LoadWolfResources()
 	sprites[4] = SoldierTexture4;
 	sprites[5] = SoldierTexture5;
 	sprites[6] = SoldierTexture6;
-	sprites[7] = SoldierTexture7; 
+	sprites[7] = SoldierTexture7;
 
-	Sprites = StaticSprites();
-	LoadBufferFromImage(&Sprites.Barell, L"barell.bmp");
-	LoadBufferFromImage(&Sprites.Well, L"well.bmp");
-	LoadBufferFromImage(&Sprites.Treaure, L"treasure.bmp");
-	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
+	//global_variable const int Spr_Barell = 0;
+	//global_variable const int Spr_Treasure = 1;
+	//global_variable const int Spr_Well = 2;
+	//global_variable const int Spr_Pillar = 3;
+	//global_variable const int Spr_Soldier = 4;
+	SpriteMap = std::vector<Sprite>();
+	SpriteMap.push_back(Sprite{ Sprites.Barell,false,1 });
+	SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
+	SpriteMap.push_back(Sprite{ Sprites.Well,false,1 });
+	SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
+	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites }); 
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
@@ -426,13 +465,14 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
 	Win32DrawGameObject(buffer, Soldier);
 
+
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
-	Soldier.dx = Caster.Direction.x;
-	Soldier.dy = Caster.Direction.y;
-	Soldier.x += Soldier.dx * -0.005;
-	Soldier.y += Soldier.dy * -0.005;
+	//Soldier.dx = Caster.Direction.x;
+	//Soldier.dy = Caster.Direction.y;
+	//Soldier.x += Soldier.dx * -0.005;
+	//Soldier.y += Soldier.dy * -0.005;
 
 	float done = 1.0f;
 }
@@ -717,10 +757,8 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	angleIdx /= (360 / 8);
 	debugPrint("angelIdx: " + std::to_string(angleIdx));
-
 	debugPrint("lookingAngle: " + std::to_string(lookingAngle));
 	debugPrint("angleToObj: " + std::to_string(angleToObject));
-	//debugPrint(L"lookingAngle: " + lookingAngle);
 
 	float objectHeight = 64.0f;
 	float objectWidth = 32.0f;
@@ -737,8 +775,14 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 
-	Win32OffscreenBuffer* sprBuffer = sprites;
-	sprBuffer += angleIdx;
+	Sprite spr = SpriteMap[entity.SpriteIndex];
+	Win32OffscreenBuffer* sprBuffer = &SpriteMap[entity.SpriteIndex].Buffer;
+
+	if (SpriteMap[entity.SpriteIndex].HasDirectionSprites)
+	{
+		sprBuffer = spr.Frames + angleIdx;
+	}
+
 	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
@@ -747,7 +791,6 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 			double u = i / projectedWidth;
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				//Win32DrawTexturedLine(buffer, &SoldierTexture, u, projectedDist, xx, projectedY + startY, projectedHeight);
 				Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
 			}
 		}
