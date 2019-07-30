@@ -92,8 +92,9 @@ struct LevelData {
 
 	int Width = 9;
 	int Height = 8;
-	float LevelRenderHeight = 15.0f;
+	float LevelRenderHeight = 16.0f;
 	float LevelRenderWidth = 480.0f;
+	float WallHeight = 32.0f;
 	float* ZBuffer = new float[LevelRenderWidth];
 	char data[72] = {
 		1,1,1,1,1,1,1,1,1,
@@ -417,8 +418,13 @@ void LoadWolfResources()
 	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
 
 	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
-	Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
-	Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
+	//Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
+	//Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
+	auto sz = 0;
+	for (auto i = 0; i < sz; i++)
+	{
+		Level.Entitys.push_back({ 4.0f,(0.5f*i) + 4.0f,0.0f, 1.0f,Spr_Treasure });
+	}
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
@@ -437,9 +443,10 @@ RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = Level.LevelRenderWidth;
+
 	float fov = glm::radians<float>(Caster.Fov);
 	float step = fov / res;
-	float wallH = 64;
+	float wallH = Level.WallHeight;
 	float nearPlane = 1.0f;
 	float farPlaneColor = 6.0f;
 
@@ -455,13 +462,13 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		angle += step;
 		float correction = cos(angle);
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		float distance = 1.0 + rayRes.Distance * correction;
+		float distance = rayRes.Distance * correction;
 		float actuallheight = Level.LevelRenderHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;
 
 
-		Level.ZBuffer[i] = 1.0f + rayRes.Distance * correction;
+		Level.ZBuffer[i] = distance;
 		//TODO fix, this should not be a arbitrary number
 		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
@@ -473,15 +480,15 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	rotation += (3.14 / 60) * 0.05;
 	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
 
-	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [](GameObject a, GameObject b) -> bool { 
+	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [](GameObject a, GameObject b) -> bool {
 		return GetProjectedDistance(a) > GetProjectedDistance(b);
-		}); 
+		});
 
 	for (GameObject item : Level.Entitys)
 	{
 		Win32DrawGameObject(buffer, item);
 	}
- 
+
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
@@ -751,7 +758,7 @@ void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g,
 }
 
 float GetProjectedDistance(GameObject entity)
-{ 
+{
 	auto pos = glm::vec2(entity.x, entity.y);
 	glm::vec2 dirToObject = pos - Caster.Origin;
 
@@ -760,7 +767,7 @@ float GetProjectedDistance(GameObject entity)
 	auto viewAngle = glm::degrees(angleToObject - lookingAngle);
 	viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
 	if (viewAngle > 180)
-		viewAngle -= 360; 
+		viewAngle -= 360;
 
 	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
 	projectedDist *= cos(glm::radians(viewAngle));
@@ -784,13 +791,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 		angleIdx += 360;
 
 	angleIdx /= (360 / 8);
-	debugPrint("angelIdx: " + std::to_string(angleIdx));
-	debugPrint("lookingAngle: " + std::to_string(lookingAngle));
-	debugPrint("angleToObj: " + std::to_string(angleToObject));
+	//debugPrint("angelIdx: " + std::to_string(angleIdx));
+	//debugPrint("lookingAngle: " + std::to_string(lookingAngle));
+	//debugPrint("angleToObj: " + std::to_string(angleToObject));
 
-	float objectHeight = 64.0f;
+	float objectHeight = Level.WallHeight;
 	float objectWidth = 32.0f;
-	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
+	float projectedDist = glm::distance(pos, Caster.Origin);
 	projectedDist *= cos(glm::radians(viewAngle));
 	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
 	float projectedWidth = Level.LevelRenderHeight * (objectWidth / projectedDist);
