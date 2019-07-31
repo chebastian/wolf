@@ -100,7 +100,7 @@ struct LevelData {
 	float LevelRenderWidth = 480.0f;
 	float WallHeight = 32.0f;
 	float* ZBuffer = new float[LevelRenderWidth];
-	char data[30*30] = {
+	char data[30 * 30] = {
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
 		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
@@ -214,23 +214,26 @@ void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 float GetProjectedDistance(GameObject entity);
+float ReadChordRow(float x, float y);
 
 class LevelReader : public IMapReader
 {
 	// Inherited via IMapReader
-	virtual int ReadTileAtPos(float x, float y) override
+	virtual int ReadTileAtPos(const float& x, const float& y) const override
 	{
-		return ReadTileAt(x, y);
+		int idx = (int)y * Level.Width + (int)x;
+		return Level.data[idx];
+		//return ReadTileAt(x, y);
 	}
-	virtual bool IsSolid(int value) override
+	virtual bool IsSolid(const int& value) const override
 	{
 		return value == SOLID_TILE;
 	}
-	virtual int Width() override
+	virtual int Width() const override
 	{
 		return Level.Width;
 	}
-	virtual int Height() override
+	virtual int Height() const override
 	{
 		return Level.Height;
 	}
@@ -478,7 +481,7 @@ void LoadWolfResources()
 	auto sz = 0;
 	for (auto i = 0; i < sz; i++)
 	{
-		Level.Entitys.push_back({ 4.0f,(0.5f*i) + 4.0f,0.0f, 1.0f,Spr_Treasure });
+		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,Spr_Treasure });
 	}
 }
 
@@ -511,13 +514,14 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	glm::vec2 dir = Caster.Direction;
 	dir = glm::rotate(dir, -fov * 0.5f);
 	float angle = -fov * 0.5f;
+	IMapReader* reader = MapReader.get();
 	for (int i = 0; i < res; i++)
 	{
 		dir = glm::rotate(dir, step);
 		angle += step;
 		float correction = cos(angle);
-		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		auto rr = Ray.RayDistance(MapReader,Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		RayResult rayRes = Ray.RayDistance(reader, Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		rayRes.TexCoord = ReadChordRow(rayRes.HitX, rayRes.HitY);
 		float distance = rayRes.Distance * correction;
 		float actuallheight = Level.LevelRenderHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);

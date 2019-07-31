@@ -6,10 +6,10 @@
 class IMapReader
 {
 public:
-	virtual int ReadTileAtPos(float x, float y) = 0;
-	virtual bool IsSolid(int value) = 0;
-	virtual int Width() = 0;
-	virtual int Height() = 0;
+	virtual int ReadTileAtPos(const float& x, const float& y) const = 0;
+	virtual bool IsSolid(const int& value) const  = 0;
+	virtual int Width() const = 0;
+	virtual int Height() const = 0;
 };
 
 struct RayResult
@@ -23,7 +23,7 @@ struct RayResult
 class RayCaster
 {
 public:
-	RayResult RayDistance(std::weak_ptr<IMapReader> reader, float px, float py, float dx, float dy)
+	RayResult RayDistance(IMapReader* reader, float px, float py, float dx, float dy)
 	{
 		glm::vec2 pos;
 		pos.x = px;
@@ -41,14 +41,16 @@ public:
 
 		float stepLength = 0.005f;
 		bool hit = false;
-		while (!hit)
-		{
-			pos.x += dir.x * stepLength;
-			pos.y += dir.y * stepLength;
-			if (auto rr = reader.lock())
+		int lvlW = reader->Width();
+		int lvlH = reader->Height();
+		//if (auto rr = reader.lock())
+		{ 
+			while (!hit)
 			{
-				int tile = rr->ReadTileAtPos(pos.x, pos.y);
-				hit = rr->IsSolid(tile) || pos.x > rr->Width() || pos.y > rr->Height() || pos.y < 0 || pos.x < 0;
+				pos.x += dir.x * stepLength;
+				pos.y += dir.y * stepLength;
+				int tile = reader->ReadTileAtPos(pos.x, pos.y);
+				hit = reader->IsSolid(tile) || pos.x > lvlW || pos.y > lvlH || pos.y < 0 || pos.x < 0;
 			}
 		}
 
