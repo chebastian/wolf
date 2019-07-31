@@ -13,6 +13,9 @@
 #include <math.h>
 #include <Xinput.h>
 #include <windowsx.h>
+#include "RayCaster.h"
+
+
 #pragma comment(lib,"xinput.lib")
 
 #define MAX_LOADSTRING 100
@@ -39,11 +42,11 @@ struct GameObject
 	int SpriteIndex;
 };
 
-struct RayResult
-{
-	float Distance;
-	float TexCoord;
-};
+//struct RayResult
+//{
+//	float Distance;
+//	float TexCoord;
+//};
 
 struct Win32OffscreenBuffer
 {
@@ -133,6 +136,10 @@ struct LevelData {
 	std::vector<GameObject> Entitys;
 };
 
+class LevelReader;
+
+
+global_variable std::shared_ptr<IMapReader> MapReader;
 global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable HWND WindowHandle;
@@ -174,6 +181,8 @@ global_variable GameObject Treasure;
 global_variable std::vector<Sprite> SpriteMap;
 global_variable StaticSprites Sprites;
 
+global_variable RayCaster Ray;
+
 
 
 // Forward declarations of functions included in this code module:
@@ -205,6 +214,27 @@ void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 float GetProjectedDistance(GameObject entity);
+
+class LevelReader : public IMapReader
+{
+	// Inherited via IMapReader
+	virtual int ReadTileAtPos(float x, float y) override
+	{
+		return ReadTileAt(x, y);
+	}
+	virtual bool IsSolid(int value) override
+	{
+		return value == SOLID_TILE;
+	}
+	virtual int Width() override
+	{
+		return Level.Width;
+	}
+	virtual int Height() override
+	{
+		return Level.Height;
+	}
+};
 
 Sprite CreateSprite(std::wstring src)
 {
@@ -399,6 +429,8 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 
 void LoadWolfResources()
 {
+	MapReader = std::shared_ptr<IMapReader>(new LevelReader);
+
 	LoadBufferFromImage(&WallTexture, L"wall.bmp");
 	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
 	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
@@ -485,6 +517,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		angle += step;
 		float correction = cos(angle);
 		RayResult rayRes = RayDistance(Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
+		auto rr = Ray.RayDistance(MapReader,Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 		float distance = rayRes.Distance * correction;
 		float actuallheight = Level.LevelRenderHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
