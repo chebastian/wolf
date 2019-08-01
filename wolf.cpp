@@ -42,11 +42,6 @@ struct GameObject
 	int SpriteIndex;
 };
 
-//struct RayResult
-//{
-//	float Distance;
-//	float TexCoord;
-//};
 
 struct Win32OffscreenBuffer
 {
@@ -497,7 +492,6 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 }
 
 global_variable float rotation;
-RayResult RayDistance(float px, float py, float dx, float dy);
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
 	float res = Level.LevelRenderWidth;
@@ -572,36 +566,6 @@ float ReadChordRow(float x, float y)
 	return  maxx;
 }
 
-
-RayResult RayDistance(float px, float py, float dx, float dy)
-{
-	glm::vec2 pos;
-	pos.x = px;
-	pos.y = py;
-
-	glm::vec2 orig;
-	orig.x = px;
-	orig.y = py;
-
-	glm::vec2 dir{ dx,dy };
-
-	auto newpy = py + dy;
-	float distanceToNextY = py - (int)py;
-
-
-	float stepLength = 0.005f;
-	bool hit = false;
-	while (!hit)
-	{
-		pos.x += dir.x * stepLength;
-		pos.y += dir.y * stepLength;
-		int tile = ReadTileAt(pos.x, pos.y);
-		hit = tile == SOLID_TILE || pos.x > Level.Width || pos.y > Level.Height || pos.y < 0 || pos.x < 0;
-	}
-
-	float uv = ReadChordRow(pos.x, pos.y);
-	return RayResult{ glm::distance(pos, orig), uv };
-}
 
 //
 //  FUNCTION: MyRegisterClass()
