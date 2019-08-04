@@ -39,7 +39,8 @@ struct GameObject
 	float y;
 	float dx;
 	float dy;
-	int SpriteIndex;
+
+	int SpriteIndex; 
 };
 
 
@@ -52,15 +53,15 @@ struct Win32OffscreenBuffer
 	int Width = 800;
 	int Height = 600;
 	int Bpp = 4;
-	int Pitch = Width * Bpp;
+	int Pitch = Width * Bpp; 
 };
-
+ 
 struct Sprite {
 	Win32OffscreenBuffer Buffer;
 	bool HasDirectionSprites;
 	int DirectionCount;
 	Win32OffscreenBuffer* Frames;
-};
+}; 
 
 struct StaticSprites
 {
@@ -164,6 +165,7 @@ global_variable const int Spr_Treasure = 1;
 global_variable const int Spr_Well = 2;
 global_variable const int Spr_Pillar = 3;
 global_variable const int Spr_Soldier = 4;
+global_variable const int Spr_Map = 5;
 
 //Mouse stuff
 global_variable int LastMouseX;
@@ -210,6 +212,20 @@ void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 float GetProjectedDistance(GameObject entity);
 float ReadChordRow(float x, float y);
+
+float MoveX(float px,float py, float dx,float dy, bool isX)
+{ 
+	auto xmoved = MapReader->ReadTileAtPos(px + dx, py);
+	auto ymoved = MapReader->ReadTileAtPos(px, py + dy);
+
+	if (isX)
+	{
+		return MapReader->IsSolid(xmoved) ? px : px + dx;
+	}
+
+
+	return MapReader->IsSolid(ymoved) ? py : py + dy;
+}
 
 class LevelReader : public IMapReader
 {
@@ -336,26 +352,49 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		ReleaseDC(0, context);
 
 		float scalar = 0.05f;
+		glm::vec2 keyDir = glm::vec2();
+		keyDir.x = 0;
+		keyDir.y = 0;
 		if (IsKeyDown('w'))
 		{
-			Caster.Origin.y += Caster.Direction.y * scalar;
-			Caster.Origin.x += Caster.Direction.x * scalar;
+			keyDir += Caster.Direction;
+			//Caster.Origin.y += Caster.Direction.y * scalar;
+			//Caster.Origin.x += Caster.Direction.x * scalar;
 		}
 		if (IsKeyDown('s'))
 		{
-			Caster.Origin.y += -Caster.Direction.y * scalar;
-			Caster.Origin.x += -Caster.Direction.x * scalar;
+			keyDir -= Caster.Direction;
+			//Caster.Origin.y += -Caster.Direction.y * scalar;
+			//Caster.Origin.x += -Caster.Direction.x * scalar;
 		}
 		if (IsKeyDown('d'))
 		{
-			Caster.Origin.y += Caster.Direction.x * scalar;
-			Caster.Origin.x += -Caster.Direction.y * scalar;
+			auto right = Caster.Direction;
+			right.y = Caster.Direction.x;
+			right.x = -Caster.Direction.y;
+
+			keyDir = right;
 		}
+
 		if (IsKeyDown('a'))
 		{
-			Caster.Origin.y += -Caster.Direction.x * scalar;
-			Caster.Origin.x += Caster.Direction.y * scalar;
+
+			auto right = Caster.Direction;
+			right.y = -Caster.Direction.x;
+			right.x = Caster.Direction.y;
+			keyDir = right;
 		}
+
+		if (keyDir.x != 0 || keyDir.y != 0)
+		{
+			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar,true);
+			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar,false);
+
+			//Caster.Origin += keyDir * scalar; 
+			Caster.Origin.x = nextX;
+			Caster.Origin.y = nextY;
+		}
+			 
 
 		if (IsKeyDown('k') || MouseClicked)
 		{
@@ -455,6 +494,7 @@ void LoadWolfResources()
 	sprites[6] = SoldierTexture6;
 	sprites[7] = SoldierTexture7;
 
+
 	//global_variable const int Spr_Barell = 0;
 	//global_variable const int Spr_Treasure = 1;
 	//global_variable const int Spr_Well = 2;
@@ -467,10 +507,19 @@ void LoadWolfResources()
 	SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
 	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
 
+
+	Win32OffscreenBuffer map;
+	LoadBufferFromImage(&map, L"soldiermap.bmp"); 
+
+	auto soldier_spr = Sprite();
+	soldier_spr.Buffer = map;
+
+	SpriteMap.push_back(Sprite{ map,false,1 }); 
+
 	Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
 	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
 
-	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Map });
 	//Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
 	//Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
 	auto sz = 0;
@@ -565,6 +614,7 @@ float ReadChordRow(float x, float y)
 	}
 	return  maxx;
 }
+
 
 
 //
@@ -928,6 +978,7 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		}
 		Pixel = (UINT32*)Row;
 		Pixel += (OffsetX);
+
 		UINT32 inTextureY = (tex->Height - startTexY) * ((startTexY + y) / ((double)h));
 		if (inTextureY > tex->Height)
 			continue;
