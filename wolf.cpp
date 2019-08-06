@@ -337,19 +337,6 @@ void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 	ReleaseDC(0, context);
 }
 
-struct Win32RGB
-{
-	char b;
-	char g;
-	char r;
-};
-
-Win32RGB PointToUvChord(float x, float y)
-{
-	return Win32RGB{ (char)255, (char)255, (char)25 };
-}
-
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
