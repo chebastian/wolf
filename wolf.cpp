@@ -40,7 +40,7 @@ struct GameObject
 	float dx;
 	float dy;
 
-	int SpriteIndex; 
+	int SpriteIndex;
 };
 
 
@@ -53,15 +53,23 @@ struct Win32OffscreenBuffer
 	int Width = 800;
 	int Height = 600;
 	int Bpp = 4;
-	int Pitch = Width * Bpp; 
+	int Pitch = Width * Bpp;
 };
- 
+
 struct Sprite {
 	Win32OffscreenBuffer Buffer;
 	bool HasDirectionSprites;
 	int DirectionCount;
 	Win32OffscreenBuffer* Frames;
-}; 
+
+};
+
+
+struct Animation : Sprite
+{
+	float Speed;
+	int FrameCount;
+};
 
 struct StaticSprites
 {
@@ -212,9 +220,11 @@ void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 float GetProjectedDistance(GameObject entity);
 float ReadChordRow(float x, float y);
+Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
+void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
 
-float MoveX(float px,float py, float dx,float dy, bool isX)
-{ 
+float MoveX(float px, float py, float dx, float dy, bool isX)
+{
 	auto xmoved = MapReader->ReadTileAtPos(px + dx, py);
 	auto ymoved = MapReader->ReadTileAtPos(px, py + dy);
 
@@ -276,6 +286,7 @@ struct TextureBuffer
 {
 	int stuff;
 };
+
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
 	HDC context = GetDC(WindowHandle);
@@ -387,14 +398,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (keyDir.x != 0 || keyDir.y != 0)
 		{
-			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar,true);
-			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar,false);
+			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, true);
+			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, false);
 
 			//Caster.Origin += keyDir * scalar; 
 			Caster.Origin.x = nextX;
 			Caster.Origin.y = nextY;
 		}
-			 
+
 
 		if (IsKeyDown('k') || MouseClicked)
 		{
@@ -494,12 +505,6 @@ void LoadWolfResources()
 	sprites[6] = SoldierTexture6;
 	sprites[7] = SoldierTexture7;
 
-
-	//global_variable const int Spr_Barell = 0;
-	//global_variable const int Spr_Treasure = 1;
-	//global_variable const int Spr_Well = 2;
-	//global_variable const int Spr_Pillar = 3;
-	//global_variable const int Spr_Soldier = 4;
 	SpriteMap = std::vector<Sprite>();
 	SpriteMap.push_back(Sprite{ Sprites.Barell,false,1 });
 	SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
@@ -507,19 +512,18 @@ void LoadWolfResources()
 	SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
 	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
 
-
 	Win32OffscreenBuffer map;
-	LoadBufferFromImage(&map, L"soldiermap.bmp"); 
+	LoadBufferFromImage(&map, L"soldiermap.bmp");
 
 	auto soldier_spr = Sprite();
 	soldier_spr.Buffer = map;
 
-	SpriteMap.push_back(Sprite{ map,false,1 }); 
+	SpriteMap.push_back(Sprite{ map,false,1 });
 
 	Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
 	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
 
-	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Map });
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Soldier });
 	//Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
 	//Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
 	auto sz = 0;
@@ -540,6 +544,7 @@ UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
 	return *columnPixel;
 }
 
+global_variable float frame = 0.0f;
 global_variable float rotation;
 void Win32DrawGame(Win32OffscreenBuffer* buffer)
 {
@@ -594,6 +599,12 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
+
+	int fx = ((int)frame) % 8;
+	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128,128, 64, 64*fx, 64, 64);
+
+	frame += 0.02f;
+	debugPrint(std::to_string(fx));
 
 	float done = 1.0f;
 }
@@ -860,11 +871,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 	if (viewAngle > 180)
 		viewAngle -= 360;
 
-	int angleIdx = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
-	if (angleIdx < 0)
-		angleIdx += 360;
-
-	angleIdx /= (360 / 8);
+	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 	//debugPrint("angelIdx: " + std::to_string(angleIdx));
 	//debugPrint("lookingAngle: " + std::to_string(lookingAngle));
 	//debugPrint("angleToObj: " + std::to_string(angleToObject));
@@ -889,7 +896,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	if (SpriteMap[entity.SpriteIndex].HasDirectionSprites)
 	{
-		sprBuffer = spr.Frames + angleIdx;
+		sprBuffer = GetAngleSprite(angle, &spr);
 	}
 
 	if (abs(viewAngle) < 30)
@@ -999,6 +1006,50 @@ void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, i
 		float tint = (float)y / buffer->Height;
 		Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
 	}
+}
+
+void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
+{
+	UINT32* Pixel;
+	UINT8* Row = (UINT8*)buffer->Memory;;
+
+	Row += buffer->Pitch * dy;
+	Pixel = (UINT32*)Row;
+	Pixel += (dx);
+
+	UINT32* TexturePixel;
+	UINT32* TextureRow = (UINT32*)texture->Memory;
+	TextureRow += (UINT32)(sy * texture->Width);
+
+	for (auto y = 0; y < h; y++)
+	{
+		if (dy + y <= 0 || dy + y >= buffer->Height)
+		{
+			Row += buffer->Pitch;
+			continue;
+		}
+
+		UINT32 inTextureY = (sh) * ((y) / ((double)h));
+		if (inTextureY > texture->Height)
+			continue;
+
+		auto texture_row_delta = inTextureY * texture->Height;
+		for (auto x = 0; x < w; x++)
+		{
+			UINT32 inTextureX = (sw) * ((x) / ((double)w));
+
+			TexturePixel = (UINT32*)TextureRow + texture_row_delta + (inTextureX+sx);
+
+			Pixel = (UINT32*)Row;
+			Pixel += (dx+x);
+			if (*TexturePixel != 0xFF00Ff)
+				* Pixel = (UINT32)((*TexturePixel));
+		}
+		Row += buffer->Pitch;
+	}
+
+
+
 }
 
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
@@ -1156,4 +1207,31 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}break;
 	}
 }
+
+Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
+{
+	int deg = degrees;
+	{
+		if (deg < 0)
+			deg += 360;
+
+		deg /= (360 / 8);
+	}
+
+	return spr->Frames + deg;
+}
+
+Win32OffscreenBuffer* GetAngleSprite(int degree, Animation* spr)
+{
+	int deg = degree;
+	{
+		if (deg < 0)
+			deg += 360;
+
+		deg /= (360 / 8);
+	}
+
+	return spr->Frames + deg;
+}
+
 
