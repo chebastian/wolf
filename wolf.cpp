@@ -269,7 +269,6 @@ Directions DegreestoDirection(int degrees);
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
@@ -860,20 +859,6 @@ void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, i
 
 }
 
-void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b)
-{
-	UINT32* Pixel;
-	UINT8* Row = (UINT8*)buffer->Memory;
-	int RedOffset = 2;
-	int GreenOffset = 1;
-	int BlueOffset = 0;
-
-	Row += (buffer->Pitch * y);
-	Pixel = (UINT32*)Row;
-	Pixel += (x);
-	*Pixel = ((r << 16) | (g << 8) | b);
-	Pixel++;
-}
 
 float GetProjectedDistance(GameObject entity)
 {
@@ -1008,7 +993,7 @@ void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, i
 	for (int y = OffsetY; y < OffsetY + h; y++)
 	{
 		float tint = (float)y / buffer->Height;
-		Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
+		Win32Helper::Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
 	}
 }
 

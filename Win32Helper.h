@@ -102,6 +102,20 @@ public:
 		memset(buffer->Memory, 0, sz * sizeof(UINT32));
 	}
 
+	static void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b)
+	{
+		UINT32* Pixel;
+		UINT8* Row = (UINT8*)buffer->Memory;
+		int RedOffset = 2;
+		int GreenOffset = 1;
+		int BlueOffset = 0;
+
+		Row += (buffer->Pitch * y);
+		Pixel = (UINT32*)Row;
+		Pixel += (x);
+		*Pixel = ((r << 16) | (g << 8) | b);
+		Pixel++;
+	}
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 	//void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
