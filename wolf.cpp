@@ -65,11 +65,110 @@ struct Sprite {
 };
 
 
-struct Animation : Sprite
+struct Frame
+{
+	int x;
+	int y;
+	int w;
+	int h;
+};
+
+struct Animation
 {
 	float Speed;
-	int FrameCount;
+	std::vector<Frame> AnimationStrip;
+
+private:
+	Frame CreateFrameForCoord(int sx, int sy, int sw, int sh, int xoffset, int yoffset)
+	{
+		return { sx * sw + (sx * xoffset),sy * sw + (yoffset * sy),sw,sh };
+	}
+public:
+	static Animation CreateWithFrames(int startx, int starty, int sw, int sh, int offsetx, int offsety, int dx, int dy, int length)
+	{
+		Animation anim;
+		anim.AnimationStrip.clear();
+		for (int i = 0; i < length; i++)
+		{
+			anim.AnimationStrip.push_back(anim.CreateFrameForCoord(startx + i * dx,starty + i * dy,sw,sh,offsetx,offsety));
+		}
+
+		return anim;
+	}
 };
+
+enum Directions
+{ 
+	S,
+	SW,
+	W,
+	NW,
+	N,
+	NE,
+	E,
+	SE 
+};
+
+struct SoldierAnimation
+{
+	std::vector<Animation> Animations;
+	SoldierAnimation()
+	{
+		int animationWidth = 64;
+		int animationheight = 64;
+
+
+		Animation stand		= Animation::CreateWithFrames(0,0,animationWidth,animationheight,1,1,1,0,8);
+		Animation walkS		= Animation::CreateWithFrames(0,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkSW	= Animation::CreateWithFrames(1,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkW		= Animation::CreateWithFrames(2,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkNW	= Animation::CreateWithFrames(3,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkN		= Animation::CreateWithFrames(4,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkNE	= Animation::CreateWithFrames(5,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkE		= Animation::CreateWithFrames(6,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation walkSE	= Animation::CreateWithFrames(7,1,animationWidth,animationheight,1,1,0,1,4);
+
+		Animation hit		= Animation::CreateWithFrames(6,7,animationWidth,animationheight,1,1,0,1,1);
+		Animation shoot		= Animation::CreateWithFrames(0,7,animationWidth,animationheight,1,1,1,0,3);
+		Animation death		= Animation::CreateWithFrames(0,6,animationWidth,animationheight,1,1,1,0,3);
+
+		Animations = { 
+			stand,
+			walkS,
+			walkSW,
+			walkW,
+			walkNW,
+			walkN,
+			walkNE,
+			walkE,
+			walkSE,
+
+			hit,
+			shoot,
+			death
+
+		}; 
+	}
+	
+	Animation WalkingForDirection(Directions dir)
+	{
+		return Animations[1 + dir];
+	}
+
+	Animation StandingDirection(Directions dir)
+	{
+		Animation stion;
+		auto ord = Animations[0];
+		stion.AnimationStrip.push_back(ord.AnimationStrip[dir]);
+		return stion;
+	}
+
+	Animation Shooting()
+	{
+		return Animations[10];
+	}
+};
+
 
 struct StaticSprites
 {
@@ -187,6 +286,8 @@ global_variable std::vector<Sprite> SpriteMap;
 global_variable StaticSprites Sprites;
 
 global_variable RayCaster Ray;
+global_variable Animation TestAnimation;
+global_variable SoldierAnimation MapSoldierAnimation;
 
 
 
@@ -221,6 +322,7 @@ float GetProjectedDistance(GameObject entity);
 float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
 void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
+Directions DegreestoDirection(int degrees);
 
 float MoveX(float px, float py, float dx, float dy, bool isX)
 {
@@ -523,13 +625,17 @@ void LoadWolfResources()
 	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
 
 	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Soldier });
-	//Level.Entitys.push_back({ 4.0f, 2.0f,0.0f, 1.0f,Spr_Soldier });
-	//Level.Entitys.push_back({ 4.0f, 4.0f,0.0f, 1.0f,Spr_Treasure });
 	auto sz = 0;
 	for (auto i = 0; i < sz; i++)
 	{
 		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,Spr_Treasure });
 	}
+
+
+
+	TestAnimation = Animation();
+	TestAnimation.Speed = 0.05;
+	TestAnimation.AnimationStrip = MapSoldierAnimation.WalkingForDirection(Directions::N).AnimationStrip;
 }
 
 UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
@@ -598,10 +704,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
-	int fx = ((int)frame) % 8;
-	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128,128, 64, 64*fx, 64, 64);
 
-	frame += 0.02f; 
+	frame += TestAnimation.Speed;
 }
 
 int ReadTileAt(float x, float y)
@@ -894,6 +998,10 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 		sprBuffer = GetAngleSprite(angle, &spr);
 	}
 
+	auto framess = MapSoldierAnimation.StandingDirection(DegreestoDirection(angle));
+	int fx = ((int)frame) % framess.AnimationStrip.size(); 
+	Frame fr = framess.AnimationStrip[fx];
+
 	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
@@ -902,11 +1010,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 			double u = i / projectedWidth;
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
+				Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx,projectedY + startY,1,projectedHeight,fr.x +  u*fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
 
+	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h); 
 }
 
 //TODO care about index, for now just draw soldier 
@@ -967,7 +1077,7 @@ void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, i
 		Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
 	}
 }
-
+ 
 void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
 {
 	UINT32* Pixel;
@@ -998,10 +1108,10 @@ void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* textur
 		{
 			UINT32 inTextureX = (sw) * ((x) / ((double)w));
 
-			TexturePixel = (UINT32*)TextureRow + texture_row_delta + (inTextureX+sx);
+			TexturePixel = (UINT32*)TextureRow + texture_row_delta + (inTextureX + sx);
 
 			Pixel = (UINT32*)Row;
-			Pixel += (dx+x);
+			Pixel += (dx + x);
 			if (*TexturePixel != 0xFF00Ff)
 				* Pixel = (UINT32)((*TexturePixel));
 		}
@@ -1015,7 +1125,7 @@ void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* textur
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
 {
 	UINT32* Pixel;
-	UINT8* Row = (UINT8*)buffer->Memory;;
+	UINT8* Row = (UINT8*)buffer->Memory;
 
 	if (OffsetX < 0 || OffsetY < 0 ||
 		OffsetX > buffer->Width || OffsetY > buffer->Height ||
@@ -1168,6 +1278,18 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}
 }
 
+Directions DegreestoDirection(int degrees)
+{
+	int deg = degrees;
+	{
+		if (deg < 0)
+			deg += 360;
+
+		deg /= (360 / 8);
+	}
+	return (Directions)deg;
+}
+
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 {
 	int deg = degrees;
@@ -1180,18 +1302,4 @@ Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 
 	return spr->Frames + deg;
 }
-
-Win32OffscreenBuffer* GetAngleSprite(int degree, Animation* spr)
-{
-	int deg = degree;
-	{
-		if (deg < 0)
-			deg += 360;
-
-		deg /= (360 / 8);
-	}
-
-	return spr->Frames + deg;
-}
-
 
