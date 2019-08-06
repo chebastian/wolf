@@ -254,7 +254,6 @@ void ResetProjectile(float x, float y, float dx, float dy);
 void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
-float GetProjectedDistance(GameObject entity);
 float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
 Directions DegreestoDirection(int degrees);
@@ -636,7 +635,8 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
 
 	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [](GameObject a, GameObject b) -> bool {
-		return GetProjectedDistance(a) > GetProjectedDistance(b);
+		return Ray.GetProjectedDistance(a.x, a.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y) >
+			Ray.GetProjectedDistance(b.x, b.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 		});
 
 	for (GameObject item : Level.Entitys)
@@ -850,22 +850,6 @@ void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, i
 }
 
 
-float GetProjectedDistance(GameObject entity)
-{
-	auto pos = glm::vec2(entity.x, entity.y);
-	glm::vec2 dirToObject = pos - Caster.Origin;
-
-	auto lookingAngle = glm::atan(Caster.Direction.x, Caster.Direction.y);
-	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
-	auto viewAngle = glm::degrees(angleToObject - lookingAngle);
-	viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
-	if (viewAngle > 180)
-		viewAngle -= 360;
-
-	float projectedDist = 1.0f + glm::distance(pos, Caster.Origin);
-	projectedDist *= cos(glm::radians(viewAngle));
-	return projectedDist;
-}
 
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 {
@@ -927,21 +911,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 }
-
-//TODO care about index, for now just draw soldier 
-//UINT32 Win32GetPixel(Win32OffscreenBuffer* buffer, int x, int y)
-//{
-//	UINT8* Row = (UINT8*)buffer->Memory;
-//	Row += buffer->Pitch * (int)y;
-//
-//	UINT32* Pixel = (UINT32*)Row; 
-//	Pixel += x;
-//	return *Pixel;
-//}
-
-
-
-
+ 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
 	UINT8* Pixel;

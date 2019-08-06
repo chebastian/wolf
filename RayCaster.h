@@ -7,7 +7,7 @@ class IMapReader
 {
 public:
 	virtual int ReadTileAtPos(const float& x, const float& y) const = 0;
-	virtual bool IsSolid(const int& value) const  = 0;
+	virtual bool IsSolid(const int& value) const = 0;
 	virtual int Width() const = 0;
 	virtual int Height() const = 0;
 };
@@ -24,13 +24,13 @@ class RayCaster
 {
 public:
 	RayResult RayDistanceEx(IMapReader* reader, float px, float py, float dx, float dy)
-	{ 
+	{
 		int mapx = px;
 		int mapy = py;
- 
+
 		int stepx = dx > 0 ? 1 : -1;
 		int stepy = dy > 0 ? 1 : -1;
- 
+
 		float rdx = abs(1.0f / dx);
 		float dry = abs(1.0f / dy);
 
@@ -38,11 +38,11 @@ public:
 		float sideDistY = 0.0f;
 
 		if (dx < 0)
-		{ 
+		{
 			sideDistX = (px - mapx) * rdx;
 		}
 		else
-		{ 
+		{
 			sideDistX = (mapx + 1.0f - px) * rdx;
 		}
 
@@ -50,11 +50,11 @@ public:
 		{
 			sideDistY = (py - mapy) * dry;
 		}
-		else 
+		else
 		{
-			sideDistY = (mapy + 1.0f - py) * dry; 
+			sideDistY = (mapy + 1.0f - py) * dry;
 		}
- 
+
 
 		bool hit = false;
 		bool side = false;
@@ -62,13 +62,13 @@ public:
 		while (!hit)
 		{
 			if (sideDistX < sideDistY)
-			{ 
+			{
 				sideDistX += rdx;
 				mapx += stepx;
 				side = false;
 			}
 			else
-			{ 
+			{
 				sideDistY += dry;
 				mapy += stepy;
 				side = true;
@@ -82,7 +82,7 @@ public:
 			((float)mapx - px + (1.0f - stepx) / 2.0f) / dx;
 
 		float distx = ((float)mapx - px + (1.0f - stepx) / 2.0f) / dx;
-		float disty =  ((float)mapy - py + (1.0f - stepy) / 2.0f) / dy;
+		float disty = ((float)mapy - py + (1.0f - stepy) / 2.0f) / dy;
 
 		float hitx = px + (dx * dist);
 		float hity = py + (dy * dist);
@@ -112,7 +112,7 @@ public:
 		int lvlW = reader->Width();
 		int lvlH = reader->Height();
 		//if (auto rr = reader.lock())
-		{ 
+		{
 			while (!hit)
 			{
 				pos.x += dir.x * stepLength;
@@ -122,11 +122,29 @@ public:
 			}
 		}
 
-		auto res =  RayResult();
+		auto res = RayResult();
 		res.Distance = glm::distance(pos, orig);
 		res.HitX = pos.x;
 		res.HitY = pos.y;
 		return res;
+	}
+
+	float GetProjectedDistance(float x, float y, float ox, float oy, float dx, float dy)
+	{
+		auto pos = glm::vec2(x, y);
+		auto origin = glm::vec2(ox, oy);
+		glm::vec2 dirToObject = pos - origin;
+
+		auto lookingAngle = glm::atan(dx,dy);
+		auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
+		auto viewAngle = glm::degrees(angleToObject - lookingAngle);
+		viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
+		if (viewAngle > 180)
+			viewAngle -= 360;
+
+		float projectedDist = 1.0f + glm::distance(pos, origin);
+		projectedDist *= cos(glm::radians(viewAngle));
+		return projectedDist;
 	}
 };
 

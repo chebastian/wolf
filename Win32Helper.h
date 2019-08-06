@@ -237,20 +237,7 @@ public:
 			}
 			Row += buffer->Pitch;
 		}
-
-
-
 	}
-	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
-	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
-	//void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-	//void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
-	//void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
-	//void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
-	//void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
-	//void Win32DrawGame(Win32OffscreenBuffer* buffer);
-	//void Win32UpdateKeyState(WPARAM wParam, bool isDown);
-	//void Win32UpdateMouse(LPARAM wParam);
 };
 
 HWND Win32Helper::WindowHandle = 0;
