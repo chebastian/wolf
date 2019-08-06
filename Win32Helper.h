@@ -96,6 +96,11 @@ public:
 		buffer->Memory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
 	}
 
+	static void Win32ClearBuffer(Win32OffscreenBuffer* buffer)
+	{
+		int sz = buffer->Width * buffer->Height;
+		memset(buffer->Memory, 0, sz * sizeof(UINT32));
+	}
 
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);

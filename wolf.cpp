@@ -269,7 +269,6 @@ Directions DegreestoDirection(int degrees);
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
@@ -1081,11 +1080,6 @@ void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w
 
 		Row += buffer->Pitch;
 	}
-}
-void Win32ClearBuffer(Win32OffscreenBuffer* buffer)
-{
-	int sz = buffer->Width * buffer->Height;
-	memset(buffer->Memory, 0, sz * sizeof(UINT32));
 }
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
