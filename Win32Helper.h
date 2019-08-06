@@ -132,6 +132,32 @@ public:
 			Win32Helper::Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
 		}
 	}
+
+	static void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
+	{
+		UINT32* Pixel;
+		UINT8* Row = (UINT8*)buffer->Memory;
+
+		if (OffsetX < 0 || OffsetY < 0 ||
+			OffsetX > buffer->Width || OffsetY > buffer->Height ||
+			OffsetX + w > buffer->Width || OffsetY + h > buffer->Height)
+			return;
+
+		Row += buffer->Pitch * OffsetY;
+
+		for (auto y = 0; y < h; y++)
+		{
+			Pixel = (UINT32*)Row;
+			Pixel += (OffsetX);
+			for (auto x = 0; x < w; x++)
+			{
+				*Pixel = ((r << 16) | (g << 8) | b);
+				Pixel++;
+			}
+
+			Row += buffer->Pitch;
+		}
+	}
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 	//void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);

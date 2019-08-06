@@ -262,7 +262,6 @@ Directions DegreestoDirection(int degrees);
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
@@ -502,13 +501,13 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 
 		if (level.data[i] == SOLID_TILE)
 		{
-			Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
-			Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 127, 0, 255);
+			Win32Helper::Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
+			Win32Helper::Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 127, 0, 255);
 		}
 		else
 		{
-			Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
-			Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 0, 0, 255);
+			Win32Helper::Win32DrawRect(buffer, (offsetx + x * sz) - off, (offsety + y * sz) - off, sz + off * 2, sz + off * 2, 255, 255, 255);
+			Win32Helper::Win32DrawRect(buffer, (offsetx + x * sz), (offsety + y * sz), sz, sz, 0, 0, 255);
 		}
 	}
 
@@ -517,8 +516,8 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 	int playerY = (Caster.Origin.y / (float)level.Height) * level.Height * sz;
 	playerY += offsety;
 
-	Win32DrawRect(buffer, playerX, playerY, 3, 3, 255, 0, 0);
-	Win32DrawRect(buffer, playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
+	Win32Helper::Win32DrawRect(buffer, playerX, playerY, 3, 3, 255, 0, 0);
+	Win32Helper::Win32DrawRect(buffer, playerX + Caster.Direction.x * 5, playerY + Caster.Direction.y * 5, 2, 2, 255, 0, 0);
 }
 
 void LoadWolfResources()
@@ -628,7 +627,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 		Level.ZBuffer[i] = distance;
 		//TODO fix, this should not be a arbitrary number
-		Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
+		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
@@ -647,7 +646,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32DrawGameObject(buffer, item);
 	}
 
-	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
+	Win32Helper::Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
 
 	frame += TestAnimation.Speed;
@@ -1025,31 +1024,6 @@ void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* textur
 
 }
 
-void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
-{
-	UINT32* Pixel;
-	UINT8* Row = (UINT8*)buffer->Memory;
-
-	if (OffsetX < 0 || OffsetY < 0 ||
-		OffsetX > buffer->Width || OffsetY > buffer->Height ||
-		OffsetX + w > buffer->Width || OffsetY + h > buffer->Height)
-		return;
-
-	Row += buffer->Pitch * OffsetY;
-
-	for (auto y = 0; y < h; y++)
-	{
-		Pixel = (UINT32*)Row;
-		Pixel += (OffsetX);
-		for (auto x = 0; x < w; x++)
-		{
-			*Pixel = ((r << 16) | (g << 8) | b);
-			Pixel++;
-		}
-
-		Row += buffer->Pitch;
-	}
-}
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
