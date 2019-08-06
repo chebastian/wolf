@@ -262,11 +262,9 @@ Directions DegreestoDirection(int degrees);
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void Win32UpdateMouse(LPARAM wParam);
-void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
 
 float MoveX(float px, float py, float dx, float dy, bool isX)
 {
@@ -630,7 +628,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+		Win32Helper::Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
@@ -922,12 +920,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
 				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
+				Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
 
-	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
+	Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 }
 
 //TODO care about index, for now just draw soldier 
@@ -941,88 +939,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 //	return *Pixel;
 //}
 
-void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h)
-{
-	UINT32* Pixel;
-	UINT8* Row = (UINT8*)buffer->Memory;;
 
-	Row += buffer->Pitch * OffsetY;
-	Pixel = (UINT32*)Row;
-	Pixel += (OffsetX);
-
-	UINT32* TexturePixel;
-	UINT32* TextureColumn = (UINT32*)tex->Memory;
-	UINT32 startTexY = 0;
-	UINT32 textureIndex = (UINT32)(u * tex->Width);
-
-	TextureColumn += textureIndex;
-
-	for (auto y = 0; y < h; y++)
-	{
-		if (OffsetY + y <= 0 || OffsetY + y >= buffer->Height)
-		{
-			Row += buffer->Pitch;
-			continue;
-		}
-		Pixel = (UINT32*)Row;
-		Pixel += (OffsetX);
-
-		UINT32 inTextureY = (tex->Height - startTexY) * ((startTexY + y) / ((double)h));
-		if (inTextureY > tex->Height)
-			continue;
-
-		auto textureOffset = inTextureY * tex->Height;
-		TexturePixel = (UINT32*)TextureColumn + textureOffset;
-		if (*TexturePixel != 0xFF00Ff)
-			* Pixel = (UINT32)((*TexturePixel));
-		Row += buffer->Pitch;
-	}
-
-}
-
-void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
-{
-	UINT32* Pixel;
-	UINT8* Row = (UINT8*)buffer->Memory;;
-
-	Row += buffer->Pitch * dy;
-	Pixel = (UINT32*)Row;
-	Pixel += (dx);
-
-	UINT32* TexturePixel;
-	UINT32* TextureRow = (UINT32*)texture->Memory;
-	TextureRow += (UINT32)(sy * texture->Width);
-
-	for (auto y = 0; y < h; y++)
-	{
-		if (dy + y <= 0 || dy + y >= buffer->Height)
-		{
-			Row += buffer->Pitch;
-			continue;
-		}
-
-		UINT32 inTextureY = (sh) * ((y) / ((double)h));
-		if (inTextureY > texture->Height)
-			continue;
-
-		auto texture_row_delta = inTextureY * texture->Height;
-		for (auto x = 0; x < w; x++)
-		{
-			UINT32 inTextureX = (sw) * ((x) / ((double)w));
-
-			TexturePixel = (UINT32*)TextureRow + texture_row_delta + (inTextureX + sx);
-
-			Pixel = (UINT32*)Row;
-			Pixel += (dx + x);
-			if (*TexturePixel != 0xFF00Ff)
-				* Pixel = (UINT32)((*TexturePixel));
-		}
-		Row += buffer->Pitch;
-	}
-
-
-
-}
 
 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
