@@ -15,6 +15,7 @@
 #include <windowsx.h>
 #include "RayCaster.h"
 #include "SpriteAnimation.h"
+#include "Win32Helper.h"
 
 
 #pragma comment(lib,"xinput.lib")
@@ -45,30 +46,15 @@ struct GameObject
 };
 
 
-struct Win32OffscreenBuffer
-{
-	BITMAPINFO Info;
-	void* Memory;
-	HBITMAP Handle;
-	HDC DeviceContext;
-	int Width = 800;
-	int Height = 600;
-	int Bpp = 4;
-	int Pitch = Width * Bpp;
-};
-
 struct Sprite {
 	Win32OffscreenBuffer Buffer;
 	bool HasDirectionSprites;
 	int DirectionCount;
 	Win32OffscreenBuffer* Frames;
-
 };
 
-
-
 enum Directions
-{ 
+{
 	S,
 	SW,
 	W,
@@ -76,7 +62,7 @@ enum Directions
 	N,
 	NE,
 	E,
-	SE 
+	SE
 };
 
 struct SoldierAnimation
@@ -88,21 +74,21 @@ struct SoldierAnimation
 		int animationheight = 64;
 
 
-		Animation stand		= Animation::CreateWithFrames(0,0,animationWidth,animationheight,1,1,1,0,8);
-		Animation walkS		= Animation::CreateWithFrames(0,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkSW	= Animation::CreateWithFrames(1,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkW		= Animation::CreateWithFrames(2,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkNW	= Animation::CreateWithFrames(3,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkN		= Animation::CreateWithFrames(4,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkNE	= Animation::CreateWithFrames(5,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkE		= Animation::CreateWithFrames(6,1,animationWidth,animationheight,1,1,0,1,4);
-		Animation walkSE	= Animation::CreateWithFrames(7,1,animationWidth,animationheight,1,1,0,1,4);
+		Animation stand = Animation::CreateWithFrames(0, 0, animationWidth, animationheight, 1, 1, 1, 0, 8);
+		Animation walkS = Animation::CreateWithFrames(0, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkSW = Animation::CreateWithFrames(1, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkW = Animation::CreateWithFrames(2, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkNW = Animation::CreateWithFrames(3, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkN = Animation::CreateWithFrames(4, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkNE = Animation::CreateWithFrames(5, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkE = Animation::CreateWithFrames(6, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		Animation walkSE = Animation::CreateWithFrames(7, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
 
-		Animation hit		= Animation::CreateWithFrames(6,7,animationWidth,animationheight,1,1,0,1,1);
-		Animation shoot		= Animation::CreateWithFrames(0,7,animationWidth,animationheight,1,1,1,0,3);
-		Animation death		= Animation::CreateWithFrames(0,6,animationWidth,animationheight,1,1,1,0,3);
+		Animation hit = Animation::CreateWithFrames(6, 7, animationWidth, animationheight, 1, 1, 0, 1, 1);
+		Animation shoot = Animation::CreateWithFrames(0, 7, animationWidth, animationheight, 1, 1, 1, 0, 3);
+		Animation death = Animation::CreateWithFrames(0, 6, animationWidth, animationheight, 1, 1, 1, 0, 3);
 
-		Animations = { 
+		Animations = {
 			stand,
 			walkS,
 			walkSW,
@@ -117,9 +103,9 @@ struct SoldierAnimation
 			shoot,
 			death
 
-		}; 
+		};
 	}
-	
+
 	Animation WalkingForDirection(Directions dir)
 	{
 		return Animations[1 + dir];
@@ -267,18 +253,6 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void LoadWolfResources();
-void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h);
-void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
-void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
-void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
-void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
-void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
-void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
-void Win32DrawGame(Win32OffscreenBuffer* buffer);
-void Win32UpdateKeyState(WPARAM wParam, bool isDown);
-void Win32UpdateMouse(LPARAM wParam);
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
@@ -293,6 +267,19 @@ float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
 void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
 Directions DegreestoDirection(int degrees);
+
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
+
+void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
+void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
+void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
+void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
+void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
+void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
+void Win32DrawGame(Win32OffscreenBuffer* buffer);
+void Win32UpdateKeyState(WPARAM wParam, bool isDown);
+void Win32UpdateMouse(LPARAM wParam);
 
 float MoveX(float px, float py, float dx, float dy, bool isX)
 {
@@ -430,7 +417,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		Win32DrawGame(&OffscreenBuffer);
 		HDC context = GetDC(WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
-		UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
+		Win32Helper::UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 
 		float scalar = 0.05f;
@@ -800,7 +787,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 
 		auto dim = GetWindowDimension(WindowHandle);
-		UpdateWin32Window(&OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
+		Win32Helper::UpdateWin32Window(&OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
 
 		EndPaint(hWnd, &ps);
 	}
@@ -969,7 +956,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 	}
 
 	auto framess = MapSoldierAnimation.StandingDirection(DegreestoDirection(angle));
-	int fx = ((int)frame) % framess.AnimationStrip.size(); 
+	int fx = ((int)frame) % framess.AnimationStrip.size();
 	Frame fr = framess.AnimationStrip[fx];
 
 	if (abs(viewAngle) < 30)
@@ -981,12 +968,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
 				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx,projectedY + startY,1,projectedHeight,fr.x +  u*fr.w, fr.y, fr.w, fr.h);
+				Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
 
-	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h); 
+	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 }
 
 //TODO care about index, for now just draw soldier 
@@ -1047,7 +1034,7 @@ void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, i
 		Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
 	}
 }
- 
+
 void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
 {
 	UINT32* Pixel;
