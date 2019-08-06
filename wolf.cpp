@@ -204,7 +204,6 @@ void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawRect(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b);
 void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* tex, double u, double dist, int OffsetX, int OffsetY, int h);
-void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy);
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
@@ -598,15 +597,11 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	}
 
 	Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
-	Win32DrawTextureScaled(buffer, 0, 3.0f, 2.0f, 1.0, 1.0);
 
 	int fx = ((int)frame) % 8;
 	Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128,128, 64, 64*fx, 64, 64);
 
-	frame += 0.02f;
-	debugPrint(std::to_string(fx));
-
-	float done = 1.0f;
+	frame += 0.02f; 
 }
 
 int ReadTileAt(float x, float y)
@@ -914,42 +909,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 }
 
-//TODO care about index, for now just draw soldier
-void Win32DrawTextureScaled(Win32OffscreenBuffer* buffer, int idx, float x, float y, float sx, float sy)
-{
-	//HDC context = GetDC(WindowHandle);
-	UINT8* Row = (UINT8*)buffer->Memory;
-	Row += buffer->Pitch * (int)y;
-	UINT32* Pixel = (UINT32*)Row;
-	Pixel += (int)x;
-
-	auto texture = SoldierTexture;
-
-	float szh = texture.Height * sy;
-	float szw = texture.Width * sx;
-	float scw = 1.0f / szw;
-	float sch = 1.0f / szh;
-
-	int hh = texture.Height * sy;
-	int ww = texture.Width * sx;
-	for (int texY = 0; texY < hh; texY++)
-	{
-		for (int texX = 0; texX < ww; texX++)
-		{
-			//int u = ((float)texY / (szh)) * texture.Height;
-			//int v = ((float)texX / (szw)) * texture.Width;
-			int u = ((float)texY * sch) * texture.Height;
-			int v = ((float)texX * scw) * texture.Width;
-			//int u =  texY;
-			//int v =  texX;
-			Pixel = (UINT32*)Row;
-			Pixel += v;
-			*Pixel = *(((UINT32*)texture.Memory) + (u * texture.Width) + v);
-		}
-		Row += buffer->Pitch;
-	}
-}
-
+//TODO care about index, for now just draw soldier 
 //UINT32 Win32GetPixel(Win32OffscreenBuffer* buffer, int x, int y)
 //{
 //	UINT8* Row = (UINT8*)buffer->Memory;
