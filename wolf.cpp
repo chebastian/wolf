@@ -1,6 +1,7 @@
 // wolf.cpp : Defines the entry point for the application.
 //
 
+#include "Win32Helper.h"
 #include "framework.h"
 #include <stdint.h>
 #include <glm.hpp>
@@ -15,7 +16,6 @@
 #include <windowsx.h>
 #include "RayCaster.h"
 #include "SpriteAnimation.h"
-#include "Win32Helper.h"
 
 
 #pragma comment(lib,"xinput.lib")
@@ -201,7 +201,6 @@ class LevelReader;
 global_variable std::shared_ptr<IMapReader> MapReader;
 global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
-global_variable HWND WindowHandle;
 global_variable Raycaster Caster;
 global_variable LevelData Level;
 global_variable Win32OffscreenBuffer OffscreenBuffer;
@@ -270,7 +269,6 @@ Directions DegreestoDirection(int degrees);
 
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
-void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
@@ -347,9 +345,9 @@ struct TextureBuffer
 
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
-	HDC context = GetDC(WindowHandle);
+	HDC context = GetDC(Win32Helper::WindowHandle);
 	HBITMAP hbit = (HBITMAP)LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	Win32GetPixels(buffer, context, hbit);
+	Win32Helper::Win32GetPixels(buffer, context, hbit);
 	ReleaseDC(0, context);
 }
 
@@ -415,8 +413,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		Win32DrawGame(&OffscreenBuffer);
-		HDC context = GetDC(WindowHandle);
-		WindowDimension clientDimension = GetWindowDimension(WindowHandle);
+		HDC context = GetDC(Win32Helper::WindowHandle);
+		WindowDimension clientDimension = GetWindowDimension(Win32Helper::WindowHandle);
 		Win32Helper::UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 
@@ -724,16 +722,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
-	WindowHandle = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	Win32Helper::WindowHandle = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-	if (!WindowHandle)
+	if (!Win32Helper::WindowHandle)
 	{
 		return FALSE;
 	}
 
-	ShowWindow(WindowHandle, nCmdShow);
-	UpdateWindow(WindowHandle);
+	ShowWindow(Win32Helper::WindowHandle, nCmdShow);
+	UpdateWindow(Win32Helper::WindowHandle);
 
 	return TRUE;
 }
@@ -786,7 +784,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code that uses hdc here...
 
-		auto dim = GetWindowDimension(WindowHandle);
+		auto dim = GetWindowDimension(Win32Helper::WindowHandle);
 		Win32Helper::UpdateWin32Window(&OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
 
 		EndPaint(hWnd, &ps);
@@ -837,25 +835,6 @@ UINT32 ReadPixelAt(Win32OffscreenBuffer* buffer, int x, int y)
 {
 	UINT8* pixel = (UINT8*)buffer->Memory + x;
 	return *pixel;
-}
-
-void  Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap)
-{
-	buffer->Info = { 0 };
-	buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
-
-	auto ctx = GetDC(WindowHandle);
-	int ress = GetDIBits(ctx, bitmap, 0, 0, NULL, &buffer->Info, DIB_RGB_COLORS);
-	buffer->Pitch = buffer->Width * buffer->Bpp;
-	buffer->Info.bmiHeader.biHeight = buffer->Info.bmiHeader.biHeight > 0 ? -buffer->Info.bmiHeader.biHeight : buffer->Info.bmiHeader.biHeight;
-	buffer->Width = std::abs(buffer->Info.bmiHeader.biWidth);
-	buffer->Height = std::abs(buffer->Info.bmiHeader.biHeight);
-
-	BYTE* pixels = new BYTE[buffer->Info.bmiHeader.biSizeImage];
-
-	int res = GetDIBits(ctx, bitmap, 0, buffer->Info.bmiHeader.biHeight, pixels, &buffer->Info, DIB_RGB_COLORS);
-	buffer->Memory = pixels;
-	ReleaseDC(WindowHandle, ctx);
 }
 
 void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
@@ -1163,13 +1142,13 @@ global_variable std::string text;
 void printInput(WPARAM wParam)
 {
 	TCHAR tchar = wParam;
-	HDC context = GetDC(WindowHandle);
+	HDC context = GetDC(Win32Helper::WindowHandle);
 	int charWidth = 0;
 	GetCharWidth32(context, (UINT)wParam, (UINT)wParam, &charWidth);
 	TextOut(context, textX, 10, &tchar, 1);
 	textX += charWidth;
 	text += tchar;
-	ReleaseDC(WindowHandle, context);
+	ReleaseDC(Win32Helper::WindowHandle, context);
 }
 
 
@@ -1180,7 +1159,7 @@ void debugPrint(std::string str)
 
 void PrintDebugString(int x, int y)
 {
-	HDC context = GetDC(WindowHandle);
+	HDC context = GetDC(Win32Helper::WindowHandle);
 	int charWidth = 0;
 
 	int py = y;
@@ -1190,7 +1169,7 @@ void PrintDebugString(int x, int y)
 		py += 18;
 	}
 
-	ReleaseDC(WindowHandle, context);
+	ReleaseDC(Win32Helper::WindowHandle, context);
 }
 
 void InitializeKeys()

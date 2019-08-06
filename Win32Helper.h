@@ -1,5 +1,15 @@
 #pragma once
 
+#define global_variable static
+#include "framework.h"
+#include <stdint.h>
+#include <glm.hpp>
+#include <gtx/rotate_vector.hpp>
+#include "wolf.h"
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <windowsx.h>
 
 struct Win32OffscreenBuffer
 {
@@ -13,9 +23,16 @@ struct Win32OffscreenBuffer
 	int Pitch = Width * Bpp;
 };
 
-static class Win32Helper
+class Win32Helper
 {
 public:
+	static HWND WindowHandle;
+
+	Win32Helper()
+	{
+
+	}
+
 	static void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, int y, int w, int h)
 	{
 		int correctedW = 0;
@@ -37,8 +54,28 @@ public:
 			0, 0, correctedW, correctedH,
 			0, 0, buffer->Width, buffer->Height,
 			buffer->Memory, &buffer->Info,
-			DIB_RGB_COLORS, SRCCOPY); 
+			DIB_RGB_COLORS, SRCCOPY);
 	}
+
+	static void  Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap)
+	{
+		buffer->Info = { 0 };
+		buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
+
+		auto ctx = GetDC(WindowHandle);
+		int ress = GetDIBits(ctx, bitmap, 0, 0, NULL, &buffer->Info, DIB_RGB_COLORS);
+		buffer->Pitch = buffer->Width * buffer->Bpp;
+		buffer->Info.bmiHeader.biHeight = buffer->Info.bmiHeader.biHeight > 0 ? -buffer->Info.bmiHeader.biHeight : buffer->Info.bmiHeader.biHeight;
+		buffer->Width = std::abs(buffer->Info.bmiHeader.biWidth);
+		buffer->Height = std::abs(buffer->Info.bmiHeader.biHeight);
+
+		BYTE* pixels = new BYTE[buffer->Info.bmiHeader.biSizeImage];
+
+		int res = GetDIBits(ctx, bitmap, 0, buffer->Info.bmiHeader.biHeight, pixels, &buffer->Info, DIB_RGB_COLORS);
+		buffer->Memory = pixels;
+		ReleaseDC(WindowHandle, ctx);
+	}
+
 
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
@@ -51,3 +88,5 @@ public:
 	//void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 	//void Win32UpdateMouse(LPARAM wParam);
 };
+
+HWND Win32Helper::WindowHandle = 0;
