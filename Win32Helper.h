@@ -11,6 +11,13 @@
 #include <vector>
 #include <windowsx.h>
 
+struct RGBColor
+{
+	UINT8 r;
+	UINT8 g;
+	UINT8 b;
+};
+
 struct Win32OffscreenBuffer
 {
 	BITMAPINFO Info;
@@ -115,6 +122,15 @@ public:
 		Pixel += (x);
 		*Pixel = ((r << 16) | (g << 8) | b);
 		Pixel++;
+	}
+
+	static void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color)
+	{
+		for (int y = OffsetY; y < OffsetY + h; y++)
+		{
+			float tint = (float)y / buffer->Height;
+			Win32Helper::Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
+		}
 	}
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);

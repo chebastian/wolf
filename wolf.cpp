@@ -28,12 +28,6 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-struct RGBColor
-{
-	UINT8 r;
-	UINT8 g;
-	UINT8 b;
-};
 
 struct GameObject
 {
@@ -256,7 +250,6 @@ int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
 UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
-void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color);
 void ResetProjectile(float x, float y, float dx, float dy);
 void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
@@ -639,7 +632,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 		//Draw Wall strip
 		Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
-		Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
+		Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
 	rotation += (3.14 / 60) * 0.05;
@@ -986,15 +979,6 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 		Row += buffer->Pitch;
 	}
 
-}
-
-void Win32DrawGradient(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY, int w, int h, RGBColor color)
-{
-	for (int y = OffsetY; y < OffsetY + h; y++)
-	{
-		float tint = (float)y / buffer->Height;
-		Win32Helper::Win32SetPixel(buffer, OffsetX, y, color.r * tint, color.g * tint, color.b * tint);
-	}
 }
 
 void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
