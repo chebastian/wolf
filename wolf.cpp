@@ -264,12 +264,10 @@ void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
 float GetProjectedDistance(GameObject entity);
 float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
-void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
 Directions DegreestoDirection(int degrees);
 
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 
-void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32ClearBuffer(Win32OffscreenBuffer* buffer);
 void Win32SetPixel(Win32OffscreenBuffer* buffer, int x, int y, UINT8 r, UINT8 g, UINT8 b);
@@ -278,6 +276,7 @@ void Win32DrawTexturedLine(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* t
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void Win32UpdateMouse(LPARAM wParam);
+void Win32DrawTexture(Win32OffscreenBuffer* buffer, Win32OffscreenBuffer* texture, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh);
 
 float MoveX(float px, float py, float dx, float dy, bool isX)
 {
@@ -390,7 +389,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	bool Running = true;
 
-	Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
+	Win32Helper::Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
 	InitializeKeys();
 	LoadWolfResources();
 
@@ -1116,25 +1115,6 @@ void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 	}
 }
 
-void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h)
-{
-	buffer->Width = w;
-	buffer->Height = h;
-	buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
-	buffer->Info.bmiHeader.biWidth = buffer->Width;
-	buffer->Info.bmiHeader.biHeight = -buffer->Height;
-	buffer->Info.bmiHeader.biPlanes = 1;
-	buffer->Info.bmiHeader.biBitCount = 32;
-	buffer->Info.bmiHeader.biCompression = BI_RGB;
-	buffer->Pitch = buffer->Width * buffer->Bpp;
-
-	int BitmapSizeMem = (w * h) * buffer->Bpp;
-
-	if (buffer->Memory)
-		VirtualFree(buffer->Memory, NULL, MEM_RELEASE);
-
-	buffer->Memory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
-}
 
 global_variable int textX = 0;
 global_variable std::string text;

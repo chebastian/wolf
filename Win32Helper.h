@@ -76,6 +76,26 @@ public:
 		ReleaseDC(WindowHandle, ctx);
 	}
 
+	static void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h)
+	{
+		buffer->Width = w;
+		buffer->Height = h;
+		buffer->Info.bmiHeader.biSize = sizeof(buffer->Info.bmiHeader);
+		buffer->Info.bmiHeader.biWidth = buffer->Width;
+		buffer->Info.bmiHeader.biHeight = -buffer->Height;
+		buffer->Info.bmiHeader.biPlanes = 1;
+		buffer->Info.bmiHeader.biBitCount = 32;
+		buffer->Info.bmiHeader.biCompression = BI_RGB;
+		buffer->Pitch = buffer->Width * buffer->Bpp;
+
+		int BitmapSizeMem = (w * h) * buffer->Bpp;
+
+		if (buffer->Memory)
+			VirtualFree(buffer->Memory, NULL, MEM_RELEASE);
+
+		buffer->Memory = VirtualAlloc(0, BitmapSizeMem, MEM_COMMIT, PAGE_READWRITE);
+	}
+
 
 	//void Win32GetPixels(Win32OffscreenBuffer* buffer, HDC deviceContext, HBITMAP bitmap);
 	//void Win32ResizeBuffer(Win32OffscreenBuffer* buffer, int w, int h);
