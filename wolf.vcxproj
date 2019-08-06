@@ -156,6 +156,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SpriteAnimation.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="wolf.h" />
   </ItemGroup>
