@@ -157,6 +157,7 @@
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SpriteAnimation.h" />
+    <ClInclude Include="SpriteId.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Win32Helper.h" />
     <ClInclude Include="wolf.h" />

@@ -16,6 +16,7 @@
 #include <windowsx.h>
 #include "RayCaster.h"
 #include "SpriteAnimation.h"
+#include "SpriteId.h"
 
 
 #pragma comment(lib,"xinput.lib")
@@ -37,6 +38,7 @@ struct GameObject
 	float dy;
 
 	int SpriteIndex;
+	int EntityId;
 };
 
 
@@ -210,13 +212,13 @@ global_variable int SOLID_TILE = 1;
 global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
 
-global_variable const int Spr_Barell = 0;
-global_variable const int Spr_Treasure = 1;
-global_variable const int Spr_Well = 2;
-global_variable const int Spr_Pillar = 3;
-global_variable const int Spr_Soldier = 4;
-global_variable const int Spr_Map = 5;
-global_variable const int Spr_Wall = 2;
+//global_variable const int Spr_Barell = 0;
+//global_variable const int Spr_Treasure = 1;
+//global_variable const int Spr_Well = 2;
+//global_variable const int Spr_Pillar = 3;
+//global_variable const int Spr_Soldier = 4;
+//global_variable const int Spr_Map = 5;
+//global_variable const int Spr_Wall = 2;
 
 //Mouse stuff
 global_variable int LastMouseX;
@@ -497,43 +499,14 @@ void LoadWolfResources()
 	LoadBufferFromImage(&Sprites.Well, L"well.bmp");
 	LoadBufferFromImage(&Sprites.Treasure, L"treasure.bmp");
 	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
+ 
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier });
 
-	sprites = new Win32OffscreenBuffer[8];
-	sprites[0] = SoldierTexture;
-	sprites[1] = SoldierTexture1;
-	sprites[2] = SoldierTexture2;
-	sprites[3] = SoldierTexture3;
-	sprites[4] = SoldierTexture4;
-	sprites[5] = SoldierTexture5;
-	sprites[6] = SoldierTexture6;
-	sprites[7] = SoldierTexture7;
-
-	//SpriteMap = std::vector<Sprite>();
-	//SpriteMap.push_back(Sprite{ Sprites.Barell,false,1 });
-	//SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
-	//SpriteMap.push_back(Sprite{ Sprites.Well,false,1 });
-	//SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
-	//SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
-
-	Win32OffscreenBuffer map;
-	LoadBufferFromImage(&map, L"soldiermap.bmp");
-
-	auto soldier_spr = Sprite();
-	soldier_spr.Buffer = map;
-
-	//SpriteMap.push_back(Sprite{ map,false,1 });
-
-	Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
-	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
-
-	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Map });
-	auto sz = 0;
+	auto sz = 10;
 	for (auto i = 0; i < sz; i++)
 	{
-		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,Spr_Treasure });
-	}
-
-
+		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well});
+	} 
 
 	TestAnimation = Animation();
 	TestAnimation.Speed = 0.05;
@@ -578,7 +551,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Renderer.DrawTexturedLine(Spr_Wall,rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+		Renderer.DrawTexturedLine(SpriteId::Id_Wall,rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 

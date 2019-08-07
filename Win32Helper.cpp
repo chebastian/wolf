@@ -1,11 +1,15 @@
 #include "Win32Helper.h"
+#include "SpriteId.h"
 
 HWND Win32Helper::WindowHandle = 0;
 
 Win32Renderer::Win32Renderer()
 {
 	Win32Helper::LoadBufferFromImage(&WallTexture, L"wall.bmp");
-	RegisterTexture(L"soldiermap.bmp", 5);
+	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
+	RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
+	RegisterTexture(L"well.bmp", SpriteId::Id_Well);
+	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
 } 
 
 void Win32Renderer::SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
