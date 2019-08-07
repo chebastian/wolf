@@ -197,7 +197,8 @@ global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable Raycaster Caster;
 global_variable LevelData Level;
-global_variable Win32OffscreenBuffer OffscreenBuffer;
+
+global_variable Win32Renderer Renderer;
 global_variable Win32OffscreenBuffer WallTexture;
 
 global_variable Win32OffscreenBuffer SoldierTexture;
@@ -222,6 +223,7 @@ global_variable const int Spr_Well = 2;
 global_variable const int Spr_Pillar = 3;
 global_variable const int Spr_Soldier = 4;
 global_variable const int Spr_Map = 5;
+global_variable const int Spr_Wall = 2;
 
 //Mouse stuff
 global_variable int LastMouseX;
@@ -249,8 +251,6 @@ void LoadWolfResources();
 int ReadTileAt(float x, float y);
 void InitializeKeys();
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int x, int y);
-UINT32  PointToTextureColumn(float u, float v, int texH, float scalar);
-void ResetProjectile(float x, float y, float dx, float dy);
 void debugPrint(std::string str);
 void PrintDebugString(int x, int y);
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename);
@@ -363,7 +363,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	bool Running = true;
 
-	Win32Helper::Win32ResizeBuffer(&OffscreenBuffer, 800, 600);
+	Win32Helper::Win32ResizeBuffer(&Renderer.OffscreenBuffer, 800, 600);
 	InitializeKeys();
 	LoadWolfResources();
 
@@ -385,10 +385,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		Win32DrawGame(&OffscreenBuffer);
+		Win32DrawGame(&Renderer.OffscreenBuffer);
 		HDC context = GetDC(Win32Helper::WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(Win32Helper::WindowHandle);
-		Win32Helper::UpdateWin32Window(&OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
+		Win32Helper::UpdateWin32Window(&Renderer.OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
 		ReleaseDC(0, context);
 
 		float scalar = 0.05f;
@@ -438,7 +438,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (IsKeyDown('k') || MouseClicked)
 		{
-			ResetProjectile(Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 		}
 
 		if (abs(MouseDistX) > 0)
@@ -448,7 +447,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
-		DrawLevel(&OffscreenBuffer, Level, 600, 10);
+		DrawLevel(&Renderer.OffscreenBuffer, Level, 600, 10);
 
 		if (MouseMoved)
 		{
@@ -463,15 +462,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	}
 	return (int)msg.wParam;
-}
-
-global_variable GameObject Projectile;
-void ResetProjectile(float x, float y, float dx, float dy)
-{
-	Projectile.x = x;
-	Projectile.y = y;
-	Projectile.dx = dx;
-	Projectile.dy = dy;
 }
 
 void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int offsety)
@@ -566,16 +556,6 @@ void LoadWolfResources()
 	TestAnimation.AnimationStrip = MapSoldierAnimation.WalkingForDirection(Directions::N).AnimationStrip;
 }
 
-UINT32  PointToTextureColumn(float u, float v, int columnHeight, float scalar)
-{
-	int posX = (int)(u * (float)WallTexture.Width);
-	UINT32* column = (UINT32*)WallTexture.Memory + (posX * WallTexture.Bpp);
-
-	float columnScale = (float)columnHeight / (float)WallTexture.Height;
-	int pointInTex = (int)(v * WallTexture.Height);
-	UINT32* columnPixel = (UINT32*)column + pointInTex;
-	return *columnPixel;
-}
 
 global_variable float frame = 0.0f;
 global_variable float rotation;
@@ -614,7 +594,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
 		//Draw Wall strip
-		Win32Helper::Win32DrawTexturedLine(buffer, &WallTexture, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+		Renderer.DrawTexturedLine(Spr_Wall,rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 	}
 
@@ -759,7 +739,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 
 		auto dim = GetWindowDimension(Win32Helper::WindowHandle);
-		Win32Helper::UpdateWin32Window(&OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
+		Win32Helper::UpdateWin32Window(&Renderer.OffscreenBuffer, hdc, 0, 0, dim.Width, dim.Height);
 
 		EndPaint(hWnd, &ps);
 	}

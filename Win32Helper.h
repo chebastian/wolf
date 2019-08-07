@@ -30,6 +30,7 @@ struct Win32OffscreenBuffer
 	int Pitch = Width * Bpp;
 };
 
+
 class Win32Helper
 {
 public:
@@ -238,6 +239,39 @@ public:
 			Row += buffer->Pitch;
 		}
 	}
+
+	static void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
+	{
+		HDC context = GetDC(Win32Helper::WindowHandle);
+		HBITMAP hbit = (HBITMAP)LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+		Win32Helper::Win32GetPixels(buffer, context, hbit);
+		ReleaseDC(0, context);
+	}
 };
 
-HWND Win32Helper::WindowHandle = 0;
+class IRenderer
+{
+public:
+	virtual void SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b) = 0;
+	virtual void DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColor color) = 0;
+	virtual void DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b) = 0;
+	virtual void DrawTexturedLine(int textureId, double u, double dist, int OffsetX, int OffsetY, int h) = 0;
+	virtual void DrawTexture(int textureId, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh) = 0;
+};
+
+class Win32Renderer : public IRenderer
+{
+public:
+	// Inherited via IRenderer
+	Win32Renderer();
+	virtual void SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b) override;
+	virtual void DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColor color) override;
+	virtual void DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b) override;
+	virtual void DrawTexturedLine(int textureId, double u, double dist, int OffsetX, int OffsetY, int h) override;
+	virtual void DrawTexture(int textureId, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh) override;
+
+	Win32OffscreenBuffer OffscreenBuffer;
+
+private:
+	Win32OffscreenBuffer WallTexture;
+};

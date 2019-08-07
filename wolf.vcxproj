@@ -162,6 +162,7 @@
     <ClInclude Include="wolf.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Win32Helper.cpp" />
     <ClCompile Include="wolf.cpp" />
   </ItemGroup>
   <ItemGroup>
