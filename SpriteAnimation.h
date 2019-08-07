@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include "Win32Helper.h"
+
 
 struct Frame
 {

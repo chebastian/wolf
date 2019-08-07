@@ -40,13 +40,6 @@ struct GameObject
 };
 
 
-struct Sprite {
-	Win32OffscreenBuffer Buffer;
-	bool HasDirectionSprites;
-	int DirectionCount;
-	Win32OffscreenBuffer* Frames;
-};
-
 enum Directions
 {
 	S,
@@ -233,7 +226,7 @@ global_variable int MouseDistX;
 global_variable bool MouseMoved;
 global_variable GameObject Soldier;
 global_variable GameObject Treasure;
-global_variable std::vector<Sprite> SpriteMap;
+//global_variable std::vector<Sprite> SpriteMap;
 global_variable StaticSprites Sprites;
 
 global_variable RayCaster Ray;
@@ -300,16 +293,7 @@ class LevelReader : public IMapReader
 	{
 		return Level.Height;
 	}
-};
-
-Sprite CreateSprite(std::wstring src)
-{
-	Sprite spr;
-	LoadBufferFromImage(&spr.Buffer, src.c_str());
-	spr.DirectionCount = 1;
-	spr.HasDirectionSprites = false;
-	return spr;
-}
+}; 
 
 
 bool IsKeyDown(char key)
@@ -524,12 +508,12 @@ void LoadWolfResources()
 	sprites[6] = SoldierTexture6;
 	sprites[7] = SoldierTexture7;
 
-	SpriteMap = std::vector<Sprite>();
-	SpriteMap.push_back(Sprite{ Sprites.Barell,false,1 });
-	SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
-	SpriteMap.push_back(Sprite{ Sprites.Well,false,1 });
-	SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
-	SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
+	//SpriteMap = std::vector<Sprite>();
+	//SpriteMap.push_back(Sprite{ Sprites.Barell,false,1 });
+	//SpriteMap.push_back(Sprite{ Sprites.Treasure,false,1 });
+	//SpriteMap.push_back(Sprite{ Sprites.Well,false,1 });
+	//SpriteMap.push_back(Sprite{ Sprites.Pillar,false,1 });
+	//SpriteMap.push_back(Sprite{ SoldierTexture,true,8,sprites });
 
 	Win32OffscreenBuffer map;
 	LoadBufferFromImage(&map, L"soldiermap.bmp");
@@ -537,12 +521,12 @@ void LoadWolfResources()
 	auto soldier_spr = Sprite();
 	soldier_spr.Buffer = map;
 
-	SpriteMap.push_back(Sprite{ map,false,1 });
+	//SpriteMap.push_back(Sprite{ map,false,1 });
 
 	Soldier = { 3.0f, 2.0f,0.0f, 1.0f,Spr_Soldier };
 	Treasure = { 4.0f, 2.0f,0.0f, 1.0f,Spr_Treasure };
 
-	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Soldier });
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, Spr_Map });
 	auto sz = 0;
 	for (auto i = 0; i < sz; i++)
 	{
@@ -850,13 +834,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
 
-	Sprite spr = SpriteMap[entity.SpriteIndex];
-	Win32OffscreenBuffer* sprBuffer = &SpriteMap[entity.SpriteIndex].Buffer;
+	//Sprite spr = SpriteMap[entity.SpriteIndex];
+	//Win32OffscreenBuffer* sprBuffer = &SpriteMap[entity.SpriteIndex].Buffer;
 
-	if (SpriteMap[entity.SpriteIndex].HasDirectionSprites)
-	{
-		sprBuffer = GetAngleSprite(angle, &spr);
-	}
+	//if (SpriteMap[entity.SpriteIndex].HasDirectionSprites)
+	//{
+	//	sprBuffer = GetAngleSprite(angle, &spr);
+	//}
 
 	auto framess = MapSoldierAnimation.StandingDirection(DegreestoDirection(angle));
 	int fx = ((int)frame) % framess.AnimationStrip.size();
@@ -871,12 +855,13 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
 				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
+				//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
+				Renderer.DrawTexture(entity.SpriteIndex, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
 
-	Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
+	//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 }
  
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)

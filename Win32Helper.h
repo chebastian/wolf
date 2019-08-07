@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 #include <windowsx.h>
+#include <map>
+
+#include "SpriteAnimation.h"
 
 struct RGBColor
 {
@@ -28,6 +31,13 @@ struct Win32OffscreenBuffer
 	int Height = 600;
 	int Bpp = 4;
 	int Pitch = Width * Bpp;
+};
+
+struct Sprite {
+	Win32OffscreenBuffer Buffer;
+	bool HasDirectionSprites;
+	int DirectionCount;
+	Win32OffscreenBuffer* Frames;
 };
 
 
@@ -264,6 +274,7 @@ class Win32Renderer : public IRenderer
 public:
 	// Inherited via IRenderer
 	Win32Renderer();
+	void RegisterTexture(std::wstring path, UINT32 id);
 	virtual void SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b) override;
 	virtual void DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColor color) override;
 	virtual void DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b) override;
@@ -273,5 +284,6 @@ public:
 	Win32OffscreenBuffer OffscreenBuffer;
 
 private:
+	std::map<UINT32, Win32OffscreenBuffer> Sprites;
 	Win32OffscreenBuffer WallTexture;
 };
