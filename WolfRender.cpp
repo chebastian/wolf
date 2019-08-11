@@ -150,7 +150,7 @@ void WolfRender::DrawWalls(Raycaster* caster)
 
 
 	Animator->UpdatePlayer(0.05f);
-	//DrawGameObjects(caster, Level.Entitys);
+	DrawGameObjects(caster, Level.Entitys);
 
 }
 
