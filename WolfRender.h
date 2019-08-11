@@ -15,6 +15,8 @@ public:
 	WolfRender(IRenderer* renderer);
 	void DrawGameObject(GameObject entity);
 	void DrawWalls(Raycaster* caster);
+	//void DrawGameObjects(Raycaster* caster);
+	void DrawGameObjects(Raycaster* caster, std::vector<GameObject> entities);
 
 	IRenderer* Renderer;
 	Raycaster* Caster;

@@ -19,16 +19,17 @@ Directions DegreestoDirection(int degrees)
 WolfRender::WolfRender(IRenderer* renderer)
 {
 	Renderer = renderer;
+	Animator = new AnimationPlayer();
+	reader = new LevelDataReader(LevelData());
 	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
 	RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
 	RegisterTexture(L"well.bmp", SpriteId::Id_Well);
+	RegisterTexture(L"wall.bmp", SpriteId::Id_Wall);
 	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
-	Animator = new AnimationPlayer();
-	reader = new LevelDataReader(LevelData());
 }
 
 void WolfRender::RegisterTexture(std::wstring path, UINT32 id)
-{ 
+{
 	Win32OffscreenBuffer buffer;
 	Win32Helper::LoadBufferFromImage(&buffer, path.c_str());
 	Sprites[id] = buffer;
@@ -45,7 +46,7 @@ float ReadChordRow(float x, float y)
 }
 
 void WolfRender::DrawGameObject(GameObject entity)
-{	
+{
 	auto pos = glm::vec2(entity.x, entity.y);
 	glm::vec2 dirToObject = pos - Caster->Origin;
 
@@ -72,11 +73,18 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster->Direction), dirToObject);
- 
+
 	auto aaa = SoldierAnimation();
-	Animator->PlayAnimation(entity.EntityId, aaa.WalkingForDirection(DegreestoDirection(angle))); 
-	Frame fr = Animator->GetCurrentFrame(entity.EntityId,DegreestoDirection(angle));
- 
+	//Animator->PlayAnimation(entity.EntityId, aaa.WalkingForDirection(DegreestoDirection(angle))); 
+	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
+
+	auto spr = Sprites[entity.SpriteIndex];
+	if (fr.w == 0 || fr.h == 0)
+	{
+		fr.w = spr.Width;
+		fr.h = spr.Height;
+	}
+
 	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
@@ -87,6 +95,7 @@ void WolfRender::DrawGameObject(GameObject entity)
 			{
 				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
 				//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
+
 				Renderer->DrawTexture(entity.SpriteIndex, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
@@ -97,7 +106,7 @@ void WolfRender::DrawGameObject(GameObject entity)
 }
 
 void WolfRender::DrawWalls(Raycaster* caster)
-{	
+{
 	float res = renderWidth;
 	int bufferHeight = 600;
 
@@ -131,21 +140,9 @@ void WolfRender::DrawWalls(Raycaster* caster)
 		Renderer->DrawRect(i, 0, 1, bufferHeight, 0, 0, 0);
 
 		//Draw Wall strip
-		Renderer->DrawTexturedLine(SpriteId::Id_Wall,rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
+		Renderer->DrawTexturedLine(SpriteId::Id_Wall, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
 		//Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 		Renderer->DrawGradient(i, wallStartY + actuallheight, 1, bufferHeight - (wallStartY + actuallheight), { 128,128,128 });
-	}
-
-	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [&](GameObject a, GameObject b) -> bool {
-		return Ray.GetProjectedDistance(a.x, a.y, caster->Origin.x, caster->Origin.y, caster->Direction.x, caster->Direction.y) >
-			Ray.GetProjectedDistance(b.x, b.y, caster->Origin.x, caster->Origin.y, caster->Direction.x, caster->Direction.y);
-		});
-
-	Animator->UpdatePlayer(0.05f);
-
-	for (GameObject item : Level.Entitys)
-	{
-		DrawGameObject(item);
 	}
 
 	//Renderer->DrawRect(renderWidth * 0.5f, bufferHeight * 0.5, 2, 2, 255, 0, 0);
@@ -153,5 +150,22 @@ void WolfRender::DrawWalls(Raycaster* caster)
 
 
 	Animator->UpdatePlayer(0.05f);
+	//DrawGameObjects(caster, Level.Entitys);
 
+}
+
+void WolfRender::DrawGameObjects(Raycaster* caster, std::vector<GameObject> entities)
+{
+
+	std::sort(entities.begin(), entities.end(), [&](GameObject a, GameObject b) -> bool {
+		return Ray.GetProjectedDistance(a.x, a.y, caster->Origin.x, caster->Origin.y, caster->Direction.x, caster->Direction.y) >
+			Ray.GetProjectedDistance(b.x, b.y, caster->Origin.x, caster->Origin.y, caster->Direction.x, caster->Direction.y);
+		});
+
+	Animator->UpdatePlayer(0.05f);
+
+	for (GameObject item : entities)
+	{
+		DrawGameObject(item);
+	}
 }

@@ -255,12 +255,14 @@ public:
 		ReleaseDC(0, context); 
 	}
 };
+
+class ITextureReader;
  
 class Win32Renderer : public IRenderer
 {
 public:
 	// Inherited via IRenderer
-	Win32Renderer();
+	Win32Renderer(ITextureReader* reader);
 	void RegisterTexture(std::wstring path, UINT32 id);
 	virtual void SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b) override;
 	virtual void DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColor color) override;
@@ -271,9 +273,10 @@ public:
 	virtual int Width() override { return OffscreenBuffer.Width; } 
 	virtual int Height() override { return OffscreenBuffer.Height; } 
 
-	Win32OffscreenBuffer OffscreenBuffer;
+	Win32OffscreenBuffer OffscreenBuffer; 
 
 private:
+	ITextureReader* textureReader;
 	std::map<UINT32, Win32OffscreenBuffer> Sprites;
 	Win32OffscreenBuffer WallTexture;
 }; 

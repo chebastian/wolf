@@ -1,4 +1,5 @@
 #pragma once
+#include "framework.h"
 #include <stdint.h>
 #include "framework.h"
 #include "WolfData.h"
@@ -14,5 +15,14 @@ public:
 
 	virtual int Height() = 0;
 	virtual int Width() = 0;
+};
+
+class ITextureReader
+{
+public:
+	virtual UINT32 GetTextureWidth(int id) = 0;
+	virtual UINT32 GetTextureHeight(int id) = 0;
+	virtual UINT32 Pitch(int id) = 0;
+	virtual void* Memory(int id) = 0;
 };
 

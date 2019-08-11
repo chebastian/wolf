@@ -33,7 +33,7 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
- 
+
 
 
 struct StaticSprites
@@ -49,7 +49,47 @@ struct WindowDimension
 	int Width;
 	int Height;
 };
- 
+
+class Win32TextureReader : public ITextureReader
+{
+	std::map<UINT32, Win32OffscreenBuffer> Sprites;
+public:
+	Win32TextureReader()
+	{
+		RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
+		RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
+		RegisterTexture(L"well.bmp", SpriteId::Id_Well);
+		RegisterTexture(L"wall.bmp", SpriteId::Id_Wall);
+		RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
+	}
+
+	void RegisterTexture(std::wstring path, UINT32 id)
+	{
+		Win32OffscreenBuffer buffer;
+		Win32Helper::LoadBufferFromImage(&buffer, path.c_str());
+		Sprites[id] = buffer;
+	}
+
+	// Inherited via ITextureReader
+	virtual UINT32 GetTextureWidth(int id) override
+	{
+		return Sprites[id].Width;
+	}
+	virtual UINT32 GetTextureHeight(int id) override
+	{
+		return Sprites[id].Height;
+	}
+	virtual UINT32 Pitch(int id) override
+	{
+		return Sprites[id].Width * Sprites[id].Bpp;
+	}
+
+	virtual void* Memory(int id) override
+	{
+		return Sprites[id].Memory;
+	}
+};
+
 
 global_variable WolfRender* WolfDraw;
 global_variable IAnimationPlayer* Animator;
@@ -58,7 +98,7 @@ global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable Raycaster Caster;
 
-global_variable Win32Renderer Renderer;
+global_variable Win32Renderer Renderer = Win32Renderer(new Win32TextureReader());
 global_variable Win32OffscreenBuffer WallTexture;
 
 global_variable Win32OffscreenBuffer SoldierTexture;
@@ -114,9 +154,8 @@ float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
 Directions DegreestoDirection(int degrees);
 
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object); 
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32DrawWalls(Win32OffscreenBuffer* buffer,int renderWidth, int renderHeight);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void Win32UpdateMouse(LPARAM wParam);
 
@@ -215,7 +254,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		WolfDraw->DrawWalls(&Caster);
-		//Win32DrawWalls(&Renderer.OffscreenBuffer,WolfDraw->Level.LevelRenderWidth, WolfDraw->Level.LevelRenderHeight);
+
 		HDC context = GetDC(Win32Helper::WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(Win32Helper::WindowHandle);
 		Win32Helper::UpdateWin32Window(&Renderer.OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
@@ -258,7 +297,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		if (keyDir.x != 0 || keyDir.y != 0)
 		{
 			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, true, MapReader.get());
-			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, false,MapReader.get());
+			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, false, MapReader.get());
 
 			//Caster.Origin += keyDir * scalar; 
 			Caster.Origin.x = nextX;
@@ -329,99 +368,20 @@ void LoadWolfResources()
 	MapReader = std::shared_ptr<IMapReader>(new LevelDataReader(LevelData()));
 	Animator = new AnimationPlayer();
 	WolfDraw = new WolfRender(&Renderer);
-
-	LoadBufferFromImage(&WallTexture, L"wall.bmp");
-	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
-	LoadBufferFromImage(&SoldierTexture1, L"soldier_1.bmp");
-	LoadBufferFromImage(&SoldierTexture2, L"soldier_2.bmp");
-	LoadBufferFromImage(&SoldierTexture3, L"soldier_3.bmp");
-	LoadBufferFromImage(&SoldierTexture4, L"soldier_4.bmp");
-	LoadBufferFromImage(&SoldierTexture5, L"soldier_5.bmp");
-	LoadBufferFromImage(&SoldierTexture6, L"soldier_6.bmp");
-	LoadBufferFromImage(&SoldierTexture7, L"soldier_7.bmp");
-
-
-	LoadBufferFromImage(&Sprites.Barell, L"barell.bmp");
-	LoadBufferFromImage(&Sprites.Well, L"well.bmp");
-	LoadBufferFromImage(&Sprites.Treasure, L"treasure.bmp");
-	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
- 
-
 	WolfDraw->Caster = &Caster;
 	WolfDraw->Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 });
 
 
-	auto sz = 0;
+	auto sz = 2;
 	for (auto i = 0; i < sz; i++)
 	{
-		GetLevelData().Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,1+i});
-	} 
+		WolfDraw->Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,2 + i });
+	}
 }
 
 
 global_variable float frame = 0.0f;
 global_variable float rotation;
-void Win32DrawWalls(Win32OffscreenBuffer* buffer, int renderWidth, int renderHeight)
-{
-	float res = renderWidth;
-
-	float fov = glm::radians<float>(Caster.Fov);
-	float step = fov / res;
-	float wallH = GetLevelData().WallHeight;
-	float nearPlane = 1.0f;
-	float farPlaneColor = 6.0f;
-
-	float startY = 0.0f;
-
-
-	glm::vec2 dir = Caster.Direction;
-	dir = glm::rotate(dir, -fov * 0.5f);
-	float angle = -fov * 0.5f;
-	IMapReader* reader = MapReader.get();
-	for (int i = 0; i < res; i++)
-	{
-		dir = glm::rotate(dir, step);
-		angle += step;
-		float correction = cos(angle);
-		RayResult rayRes = Ray.RayDistance(reader, Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
-		rayRes.TexCoord = ReadChordRow(rayRes.HitX, rayRes.HitY);
-		float distance = rayRes.Distance * correction;
-		float actuallheight = renderHeight * (wallH / distance);
-		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
-		float offsetX = i;
-
-
-		WolfDraw->Level.ZBuffer[i] = distance;
-		//TODO fix, this should not be a arbitrary number
-		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
-
-		//Draw Wall strip
-		Renderer.DrawTexturedLine(SpriteId::Id_Wall,rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
-		Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
-	}
-
-	rotation += (3.14 / 60) * 0.05;
-	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
-
-	std::sort(WolfDraw->Level.Entitys.begin(), WolfDraw->Level.Entitys.end(), [](GameObject a, GameObject b) -> bool {
-		return Ray.GetProjectedDistance(a.x, a.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y) >
-			Ray.GetProjectedDistance(b.x, b.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
-		});
-
-	Animator->UpdatePlayer(0.05f);
-
-	for (GameObject item : WolfDraw->Level.Entitys)
-	{
-		//Win32DrawGameObject(buffer, item);
-		WolfDraw->DrawGameObject(item);
-	}
-
-	Win32Helper::Win32DrawRect(buffer, renderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
-
-
-	WolfDraw->Animator->UpdatePlayer(0.05f);
-	frame += 0.05;
-}
 
 int ReadTileAt(float x, float y)
 {
@@ -652,12 +612,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 	float projectedX = (GetLevelData().LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
- 
+
 	//auto aaa = SoldierAnimation();
 	//Animator->PlayAnimation(0, aaa.WalkingForDirection(DegreestoDirection(angle))); 
 	//Frame fr = Animator->GetCurrentFrame(entity.EntityId,DegreestoDirection(angle));
 	Frame fr = { 0 };
- 
+
 	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
@@ -675,7 +635,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 }
- 
+
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
 	UINT8* Pixel;
