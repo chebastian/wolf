@@ -153,7 +153,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationPlayer.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Interfaces.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SpriteAnimation.h" />
@@ -161,10 +163,14 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Win32Helper.h" />
     <ClInclude Include="wolf.h" />
+    <ClInclude Include="WolfData.h" />
+    <ClInclude Include="WolfRender.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Helper.cpp" />
     <ClCompile Include="wolf.cpp" />
+    <ClCompile Include="WolfData.cpp" />
+    <ClCompile Include="WolfRender.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="wolf.rc" />

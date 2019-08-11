@@ -17,6 +17,10 @@
 #include "RayCaster.h"
 #include "SpriteAnimation.h"
 #include "SpriteId.h"
+#include "AnimationPlayer.h"
+
+#include "WolfData.h"
+#include "WolfRender.h"
 
 
 #pragma comment(lib,"xinput.lib")
@@ -28,91 +32,7 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-
-
-struct GameObject
-{
-	float x;
-	float y;
-	float dx;
-	float dy;
-
-	int SpriteIndex;
-	int EntityId;
-};
-
-
-enum Directions
-{
-	S,
-	SW,
-	W,
-	NW,
-	N,
-	NE,
-	E,
-	SE
-};
-
-struct SoldierAnimation
-{
-	std::vector<Animation> Animations;
-	SoldierAnimation()
-	{
-		int animationWidth = 64;
-		int animationheight = 64;
-
-
-		Animation stand = Animation::CreateWithFrames(0, 0, animationWidth, animationheight, 1, 1, 1, 0, 8);
-		Animation walkS = Animation::CreateWithFrames(0, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkSW = Animation::CreateWithFrames(1, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkW = Animation::CreateWithFrames(2, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkNW = Animation::CreateWithFrames(3, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkN = Animation::CreateWithFrames(4, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkNE = Animation::CreateWithFrames(5, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkE = Animation::CreateWithFrames(6, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		Animation walkSE = Animation::CreateWithFrames(7, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-
-		Animation hit = Animation::CreateWithFrames(6, 7, animationWidth, animationheight, 1, 1, 0, 1, 1);
-		Animation shoot = Animation::CreateWithFrames(0, 7, animationWidth, animationheight, 1, 1, 1, 0, 3);
-		Animation death = Animation::CreateWithFrames(0, 6, animationWidth, animationheight, 1, 1, 1, 0, 3);
-
-		Animations = {
-			stand,
-			walkS,
-			walkSW,
-			walkW,
-			walkNW,
-			walkN,
-			walkNE,
-			walkE,
-			walkSE,
-
-			hit,
-			shoot,
-			death
-
-		};
-	}
-
-	Animation WalkingForDirection(Directions dir)
-	{
-		return Animations[1 + dir];
-	}
-
-	Animation StandingDirection(Directions dir)
-	{
-		Animation stion;
-		auto ord = Animations[0];
-		stion.AnimationStrip.push_back(ord.AnimationStrip[dir]);
-		return stion;
-	}
-
-	Animation Shooting()
-	{
-		return Animations[10];
-	}
-};
+ 
 
 
 struct StaticSprites
@@ -129,64 +49,12 @@ struct WindowDimension
 	int Height;
 };
 
-
-struct Raycaster {
-	glm::vec2 Origin{ 5,1.5 };
-	glm::vec2 Direction{ -1,0 };
-	int Fov = 60;
-	int Near;
-	int Far;
-};
-
-
-struct LevelData {
-
-	const int Width = 30;
-	const int Height = 30;
-	const int Sz = Width * Height;
-	float LevelRenderHeight = 16.0f;
-	float LevelRenderWidth = 480.0f;
-	float WallHeight = 32.0f;
-	float* ZBuffer = new float[LevelRenderWidth];
-	char data[30 * 30] = {
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	};
-
-	std::vector<GameObject> Entitys;
-};
-
+ 
 class LevelReader;
 
 
+global_variable WolfRender* WolfDraw;
+global_variable IAnimationPlayer* Animator;
 global_variable std::shared_ptr<IMapReader> MapReader;
 global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
@@ -232,8 +100,7 @@ global_variable GameObject Treasure;
 global_variable StaticSprites Sprites;
 
 global_variable RayCaster Ray;
-global_variable Animation TestAnimation;
-global_variable SoldierAnimation MapSoldierAnimation;
+//global_variable SoldierAnimation MapSoldierAnimation;
 
 
 
@@ -253,8 +120,7 @@ float ReadChordRow(float x, float y);
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr);
 Directions DegreestoDirection(int degrees);
 
-void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object);
-
+void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object); 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
 void Win32DrawGame(Win32OffscreenBuffer* buffer);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
@@ -483,6 +349,8 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 void LoadWolfResources()
 {
 	MapReader = std::shared_ptr<IMapReader>(new LevelReader);
+	Animator = new AnimationPlayer();
+	WolfDraw = new WolfRender(&Renderer);
 
 	LoadBufferFromImage(&WallTexture, L"wall.bmp");
 	LoadBufferFromImage(&SoldierTexture, L"soldier_0.bmp");
@@ -500,17 +368,16 @@ void LoadWolfResources()
 	LoadBufferFromImage(&Sprites.Treasure, L"treasure.bmp");
 	LoadBufferFromImage(&Sprites.Pillar, L"pillar.bmp");
  
-	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier });
 
-	auto sz = 10;
+	WolfDraw->Caster = &Caster;
+	WolfDraw->Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 });
+
+
+	auto sz = 0;
 	for (auto i = 0; i < sz; i++)
 	{
-		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well});
+		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,1+i});
 	} 
-
-	TestAnimation = Animation();
-	TestAnimation.Speed = 0.05;
-	TestAnimation.AnimationStrip = MapSoldierAnimation.WalkingForDirection(Directions::N).AnimationStrip;
 }
 
 
@@ -546,7 +413,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		float offsetX = i;
 
 
-		Level.ZBuffer[i] = distance;
+		WolfDraw->Level.ZBuffer[i] = distance;
 		//TODO fix, this should not be a arbitrary number
 		Win32Helper::Win32DrawRect(buffer, i, 0, 1, buffer->Height, 0, 0, 0); //Clear screen
 
@@ -563,15 +430,19 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 			Ray.GetProjectedDistance(b.x, b.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 		});
 
-	for (GameObject item : Level.Entitys)
+	Animator->UpdatePlayer(0.05f);
+
+	for (GameObject item : WolfDraw->Level.Entitys)
 	{
-		Win32DrawGameObject(buffer, item);
+		//Win32DrawGameObject(buffer, item);
+		WolfDraw->Win32DrawGameObject(item);
 	}
 
 	Win32Helper::Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
 
-	frame += TestAnimation.Speed;
+	WolfDraw->Animator->UpdatePlayer(0.05f);
+	frame += 0.05;
 }
 
 int ReadTileAt(float x, float y)
@@ -788,9 +659,6 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 		viewAngle -= 360;
 
 	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
-	//debugPrint("angelIdx: " + std::to_string(angleIdx));
-	//debugPrint("lookingAngle: " + std::to_string(lookingAngle));
-	//debugPrint("angleToObj: " + std::to_string(angleToObject));
 
 	float objectHeight = Level.WallHeight;
 	float objectWidth = 32.0f;
@@ -806,19 +674,12 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
-
-	//Sprite spr = SpriteMap[entity.SpriteIndex];
-	//Win32OffscreenBuffer* sprBuffer = &SpriteMap[entity.SpriteIndex].Buffer;
-
-	//if (SpriteMap[entity.SpriteIndex].HasDirectionSprites)
-	//{
-	//	sprBuffer = GetAngleSprite(angle, &spr);
-	//}
-
-	auto framess = MapSoldierAnimation.StandingDirection(DegreestoDirection(angle));
-	int fx = ((int)frame) % framess.AnimationStrip.size();
-	Frame fr = framess.AnimationStrip[fx];
-
+ 
+	//auto aaa = SoldierAnimation();
+	//Animator->PlayAnimation(0, aaa.WalkingForDirection(DegreestoDirection(angle))); 
+	//Frame fr = Animator->GetCurrentFrame(entity.EntityId,DegreestoDirection(angle));
+	Frame fr = { 0 };
+ 
 	if (abs(viewAngle) < 30)
 	{
 		for (int i = 0; i < projectedWidth; i++)
@@ -943,17 +804,17 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}
 }
 
-Directions DegreestoDirection(int degrees)
-{
-	int deg = degrees;
-	{
-		if (deg < 0)
-			deg += 360;
-
-		deg /= (360 / 8);
-	}
-	return (Directions)deg;
-}
+//Directions DegreestoDirection(int degrees)
+//{
+//	int deg = degrees;
+//	{
+//		if (deg < 0)
+//			deg += 360;
+//
+//		deg /= (360 / 8);
+//	}
+//	return (Directions)deg;
+//}
 
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 {

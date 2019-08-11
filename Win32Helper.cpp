@@ -31,7 +31,16 @@ void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int O
 
 void Win32Renderer::DrawTexture(int textureId, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
 {
-	Win32Helper::Win32DrawTexture(&OffscreenBuffer, &Sprites[textureId], dx, dy, w, h, sx, sy, sw, sh);
+	auto sourceWidth = sw;
+	auto sourceHeight = sh;
+	auto theSprite = &Sprites[textureId];
+	if (sw == 0 || sh == 0)
+	{ 
+		sourceWidth = theSprite->Width;
+		sourceHeight = theSprite->Height;
+	} 
+
+	Win32Helper::Win32DrawTexture(&OffscreenBuffer, &Sprites[textureId], dx, dy, w, h, sx, sy, sourceWidth, sourceHeight);
 }
 
 void Win32Renderer::RegisterTexture(std::wstring path, UINT32 id)
