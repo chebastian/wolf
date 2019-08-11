@@ -18,6 +18,7 @@
 #include "SpriteAnimation.h"
 #include "SpriteId.h"
 #include "AnimationPlayer.h"
+#include "LevelDataReader.h"
 
 #include "WolfData.h"
 #include "WolfRender.h"
@@ -48,10 +49,7 @@ struct WindowDimension
 	int Width;
 	int Height;
 };
-
  
-class LevelReader;
-
 
 global_variable WolfRender* WolfDraw;
 global_variable IAnimationPlayer* Animator;
@@ -59,7 +57,6 @@ global_variable std::shared_ptr<IMapReader> MapReader;
 global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable Raycaster Caster;
-global_variable LevelData Level;
 
 global_variable Win32Renderer Renderer;
 global_variable Win32OffscreenBuffer WallTexture;
@@ -75,9 +72,6 @@ global_variable Win32OffscreenBuffer SoldierTexture7;
 
 global_variable Win32OffscreenBuffer* sprites;
 
-global_variable int SEE_THROUGH_TILE = 2;
-global_variable int SOLID_TILE = 1;
-global_variable int OPEN_TILE = 0;
 global_variable glm::vec2 positionVec;
 
 //global_variable const int Spr_Barell = 0;
@@ -122,46 +116,24 @@ Directions DegreestoDirection(int degrees);
 
 void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject object); 
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY);
-void Win32DrawGame(Win32OffscreenBuffer* buffer);
+void Win32DrawWalls(Win32OffscreenBuffer* buffer,int renderWidth, int renderHeight);
 void Win32UpdateKeyState(WPARAM wParam, bool isDown);
 void Win32UpdateMouse(LPARAM wParam);
 
-float MoveX(float px, float py, float dx, float dy, bool isX)
+float MoveX(float px, float py, float dx, float dy, bool isX, IMapReader* reader)
 {
-	auto xmoved = MapReader->ReadTileAtPos(px + dx, py);
-	auto ymoved = MapReader->ReadTileAtPos(px, py + dy);
+	auto xmoved = reader->ReadTileAtPos(px + dx, py);
+	auto ymoved = reader->ReadTileAtPos(px, py + dy);
 
 	if (isX)
 	{
-		return MapReader->IsSolid(xmoved) ? px : px + dx;
+		return reader->IsSolid(xmoved) ? px : px + dx;
 	}
 
 
-	return MapReader->IsSolid(ymoved) ? py : py + dy;
+	return reader->IsSolid(ymoved) ? py : py + dy;
 }
 
-class LevelReader : public IMapReader
-{
-	// Inherited via IMapReader
-	virtual int ReadTileAtPos(const float& x, const float& y) const override
-	{
-		int idx = (int)y * Level.Width + (int)x;
-		return Level.data[idx];
-		//return ReadTileAt(x, y);
-	}
-	virtual bool IsSolid(const int& value) const override
-	{
-		return value == SOLID_TILE;
-	}
-	virtual int Width() const override
-	{
-		return Level.Width;
-	}
-	virtual int Height() const override
-	{
-		return Level.Height;
-	}
-}; 
 
 
 bool IsKeyDown(char key)
@@ -180,6 +152,11 @@ struct TextureBuffer
 {
 	int stuff;
 };
+
+LevelData GetLevelData()
+{
+	return WolfDraw->Level;
+}
 
 void LoadBufferFromImage(Win32OffscreenBuffer* buffer, LPCWSTR filename)
 {
@@ -237,7 +214,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		Win32DrawGame(&Renderer.OffscreenBuffer);
+		WolfDraw->DrawWalls(&Caster);
+		//Win32DrawWalls(&Renderer.OffscreenBuffer,WolfDraw->Level.LevelRenderWidth, WolfDraw->Level.LevelRenderHeight);
 		HDC context = GetDC(Win32Helper::WindowHandle);
 		WindowDimension clientDimension = GetWindowDimension(Win32Helper::WindowHandle);
 		Win32Helper::UpdateWin32Window(&Renderer.OffscreenBuffer, context, 0, 0, clientDimension.Width, clientDimension.Height);
@@ -279,8 +257,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (keyDir.x != 0 || keyDir.y != 0)
 		{
-			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, true);
-			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, false);
+			auto nextX = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, true, MapReader.get());
+			auto nextY = MoveX(Caster.Origin.x, Caster.Origin.y, keyDir.x * scalar, keyDir.y * scalar, false,MapReader.get());
 
 			//Caster.Origin += keyDir * scalar; 
 			Caster.Origin.x = nextX;
@@ -294,12 +272,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (abs(MouseDistX) > 0)
 		{
-			Caster.Direction = glm::rotate(Caster.Direction, (3.14f * 5) * -(MouseDistX / Level.LevelRenderWidth));
+			Caster.Direction = glm::rotate(Caster.Direction, (3.14f * 5) * -(MouseDistX / GetLevelData().LevelRenderWidth));
 		}
 
 		xOffset += Caster.Direction.x * 2;
 		yOffset += Caster.Direction.y * 2;
-		DrawLevel(&Renderer.OffscreenBuffer, Level, 600, 10);
+		DrawLevel(&Renderer.OffscreenBuffer, GetLevelData(), 600, 10);
 
 		if (MouseMoved)
 		{
@@ -348,7 +326,7 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 
 void LoadWolfResources()
 {
-	MapReader = std::shared_ptr<IMapReader>(new LevelReader);
+	MapReader = std::shared_ptr<IMapReader>(new LevelDataReader(LevelData()));
 	Animator = new AnimationPlayer();
 	WolfDraw = new WolfRender(&Renderer);
 
@@ -376,20 +354,20 @@ void LoadWolfResources()
 	auto sz = 0;
 	for (auto i = 0; i < sz; i++)
 	{
-		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,1+i});
+		GetLevelData().Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,1+i});
 	} 
 }
 
 
 global_variable float frame = 0.0f;
 global_variable float rotation;
-void Win32DrawGame(Win32OffscreenBuffer* buffer)
+void Win32DrawWalls(Win32OffscreenBuffer* buffer, int renderWidth, int renderHeight)
 {
-	float res = Level.LevelRenderWidth;
+	float res = renderWidth;
 
 	float fov = glm::radians<float>(Caster.Fov);
 	float step = fov / res;
-	float wallH = Level.WallHeight;
+	float wallH = GetLevelData().WallHeight;
 	float nearPlane = 1.0f;
 	float farPlaneColor = 6.0f;
 
@@ -408,7 +386,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 		RayResult rayRes = Ray.RayDistance(reader, Caster.Origin.x, Caster.Origin.y, dir.x, dir.y);
 		rayRes.TexCoord = ReadChordRow(rayRes.HitX, rayRes.HitY);
 		float distance = rayRes.Distance * correction;
-		float actuallheight = Level.LevelRenderHeight * (wallH / distance);
+		float actuallheight = renderHeight * (wallH / distance);
 		float wallStartY = startY + buffer->Height * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;
 
@@ -425,7 +403,7 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	rotation += (3.14 / 60) * 0.05;
 	auto rdir = glm::rotate(glm::vec2(Soldier.dx, Soldier.dy), 3.14f / 60.0f);
 
-	std::sort(Level.Entitys.begin(), Level.Entitys.end(), [](GameObject a, GameObject b) -> bool {
+	std::sort(WolfDraw->Level.Entitys.begin(), WolfDraw->Level.Entitys.end(), [](GameObject a, GameObject b) -> bool {
 		return Ray.GetProjectedDistance(a.x, a.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y) >
 			Ray.GetProjectedDistance(b.x, b.y, Caster.Origin.x, Caster.Origin.y, Caster.Direction.x, Caster.Direction.y);
 		});
@@ -435,10 +413,10 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 	for (GameObject item : WolfDraw->Level.Entitys)
 	{
 		//Win32DrawGameObject(buffer, item);
-		WolfDraw->Win32DrawGameObject(item);
+		WolfDraw->DrawGameObject(item);
 	}
 
-	Win32Helper::Win32DrawRect(buffer, Level.LevelRenderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
+	Win32Helper::Win32DrawRect(buffer, renderWidth * 0.5f, buffer->Height * 0.5, 2, 2, 255, 0, 0);
 
 
 	WolfDraw->Animator->UpdatePlayer(0.05f);
@@ -447,21 +425,21 @@ void Win32DrawGame(Win32OffscreenBuffer* buffer)
 
 int ReadTileAt(float x, float y)
 {
-	int idx = (int)y * Level.Width + (int)x;
-	return Level.data[idx];
+	int idx = (int)y * GetLevelData().Width + (int)x;
+	return GetLevelData().data[idx];
 }
 
 
-float ReadChordRow(float x, float y)
-{
-	float maxx = std::min(x - (int)x, y - (int)y);
-	if (maxx < 0.01f)
-	{
-		maxx = std::max(x - (int)x, y - (int)y);
-	}
-	return  maxx;
-}
-
+//float ReadChordRow(float x, float y)
+//{
+//	float maxx = std::min(x - (int)x, y - (int)y);
+//	if (maxx < 0.01f)
+//	{
+//		maxx = std::max(x - (int)x, y - (int)y);
+//	}
+//	return  maxx;
+//}
+//
 
 
 //
@@ -660,18 +638,18 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 
 	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 
-	float objectHeight = Level.WallHeight;
+	float objectHeight = GetLevelData().WallHeight;
 	float objectWidth = 32.0f;
 	float projectedDist = glm::distance(pos, Caster.Origin);
 	projectedDist *= cos(glm::radians(viewAngle));
-	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
-	float projectedWidth = Level.LevelRenderHeight * (objectWidth / projectedDist);
+	float projectedHeight = GetLevelData().LevelRenderHeight * (objectHeight / projectedDist);
+	float projectedWidth = GetLevelData().LevelRenderHeight * (objectWidth / projectedDist);
 	float startY = 0;
 	float projectedY = (buffer->Height * 0.5) + ((projectedHeight * -0.5) + startY);
 
 	debugPrint("dist: " + std::to_string(projectedDist));
-	float stepSize = Level.LevelRenderWidth / Caster.Fov;
-	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
+	float stepSize = GetLevelData().LevelRenderWidth / Caster.Fov;
+	float projectedX = (GetLevelData().LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster.Direction), dirToObject);
  
@@ -686,7 +664,7 @@ void Win32DrawGameObject(Win32OffscreenBuffer* buffer, GameObject entity)
 		{
 			float xx = i + projectedX - (0.5f * projectedWidth);
 			double u = i / projectedWidth;
-			if (Level.ZBuffer[(int)xx] > projectedDist)
+			if (GetLevelData().ZBuffer[(int)xx] > projectedDist)
 			{
 				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
 				//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);

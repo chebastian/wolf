@@ -4,6 +4,12 @@
 #include <gtx/rotate_vector.hpp>
 #include <vector>
 
+#define global_variable static
+
+global_variable int SEE_THROUGH_TILE = 2;
+global_variable int SOLID_TILE = 1;
+global_variable int OPEN_TILE = 0;
+
 struct RGBColor
 {
 	UINT8 r;

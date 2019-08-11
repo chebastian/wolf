@@ -22,6 +22,7 @@ void Win32Renderer::DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColo
 
 void Win32Renderer::DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
 {
+	Win32Helper::Win32DrawRect(&OffscreenBuffer, OffsetX, OffsetY, w, h, r, g, b);
 }
 
 void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int OffsetX, int OffsetY, int h)

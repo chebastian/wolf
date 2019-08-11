@@ -5,13 +5,16 @@
 #include <map>
 #include <string>
 
+#include "RayCaster.h"
+
 class IAnimationPlayer;
 
 class WolfRender
 {
 public:
 	WolfRender(IRenderer* renderer);
-	void Win32DrawGameObject(GameObject entity);
+	void DrawGameObject(GameObject entity);
+	void DrawWalls(Raycaster* caster);
 
 	IRenderer* Renderer;
 	Raycaster* Caster;
@@ -22,5 +25,10 @@ public:
 private:
 	void RegisterTexture(std::wstring path, UINT32 id);
 
+	IMapReader* reader;
+	const float renderWidth = 480.0f;
+	const float renderHeight = 16.0f;
+	const float wallHeight = 32.0f;
+	RayCaster Ray;
 };
 

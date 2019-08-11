@@ -156,6 +156,7 @@
     <ClInclude Include="AnimationPlayer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Interfaces.h" />
+    <ClInclude Include="LevelDataReader.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SpriteAnimation.h" />
