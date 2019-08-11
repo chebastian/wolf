@@ -302,8 +302,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			//Caster.Origin += keyDir * scalar; 
 			Caster.Origin.x = nextX;
 			Caster.Origin.y = nextY;
-		}
-
+		} 
 
 		if (IsKeyDown('k') || MouseClicked)
 		{
@@ -687,19 +686,7 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}break;
 	}
 }
-
-//Directions DegreestoDirection(int degrees)
-//{
-//	int deg = degrees;
-//	{
-//		if (deg < 0)
-//			deg += 360;
-//
-//		deg /= (360 / 8);
-//	}
-//	return (Directions)deg;
-//}
-
+ 
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 {
 	int deg = degrees;

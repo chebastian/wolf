@@ -277,6 +277,4 @@ public:
 
 private:
 	ITextureReader* textureReader;
-	std::map<UINT32, Win32OffscreenBuffer> Sprites;
-	Win32OffscreenBuffer WallTexture;
 }; 

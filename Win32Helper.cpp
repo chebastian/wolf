@@ -8,11 +8,6 @@ HWND Win32Helper::WindowHandle = 0;
 Win32Renderer::Win32Renderer(ITextureReader* reader)
 {
 	textureReader = reader;
-	Win32Helper::LoadBufferFromImage(&WallTexture, L"wall.bmp");
-	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
-	RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
-	RegisterTexture(L"well.bmp", SpriteId::Id_Well);
-	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
 }
 
 void Win32Renderer::SetPixel(int x, int y, UINT8 r, UINT8 g, UINT8 b)
@@ -25,7 +20,28 @@ void Win32Renderer::DrawGradient(int OffsetX, int OffsetY, int w, int h, RGBColo
 
 void Win32Renderer::DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UINT8 g, UINT8 b)
 {
-	Win32Helper::Win32DrawRect(&OffscreenBuffer, OffsetX, OffsetY, w, h, r, g, b);
+	UINT32* Pixel;
+	UINT8* Row = (UINT8*)OffscreenBuffer.Memory;
+
+	if (OffsetX < 0 || OffsetY < 0 ||
+		OffsetX > Width() || OffsetY > Height() ||
+		OffsetX + w > Width() || OffsetY + h > Height())
+		return;
+
+	Row += OffscreenBuffer.Pitch * OffsetY;
+
+	for (auto y = 0; y < h; y++)
+	{
+		Pixel = (UINT32*)Row;
+		Pixel += (OffsetX);
+		for (auto x = 0; x < w; x++)
+		{
+			*Pixel = ((r << 16) | (g << 8) | b);
+			Pixel++;
+		}
+
+		Row += OffscreenBuffer.Pitch;
+	} 
 }
 
 void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int OffsetX, int OffsetY, int h)
@@ -74,7 +90,6 @@ void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int O
 
 void Win32Renderer::DrawTexture(int textureId, int dx, int dy, int w, int h, int sx, int sy, int sw, int sh)
 {
-	//Win32Helper::Win32DrawTexture(&OffscreenBuffer, &Sprites[textureId], dx, dy, w, h, sx, sy, sw, sh);
 	auto texMemory = textureReader->Memory(textureId);
 	auto texHeight = textureReader->GetTextureHeight(textureId);
 	auto texWidth = textureReader->GetTextureWidth(textureId);
@@ -124,5 +139,5 @@ void Win32Renderer::RegisterTexture(std::wstring path, UINT32 id)
 {
 	Win32OffscreenBuffer buffer;
 	Win32Helper::LoadBufferFromImage(&buffer, path.c_str());
-	Sprites[id] = buffer;
+	//Sprites[id] = buffer;
 }
