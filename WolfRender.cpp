@@ -78,8 +78,7 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
 	float projectedWidth = Level.LevelRenderHeight * (objectWidth / projectedDist);
 
-	float startY = 0;
-	float projectedY = (Renderer->Height() * 0.5) + ((projectedHeight * -0.5) + startY); 
+	float projectedY = (Renderer->Height() * 0.5) + ((projectedHeight * -0.5)); 
 	float stepSize = Level.LevelRenderWidth / Caster->Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
@@ -101,7 +100,7 @@ void WolfRender::DrawGameObject(GameObject entity)
 			double u = i / projectedWidth;
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				Renderer->DrawTexture(entity.SpriteIndex, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
+				Renderer->DrawTexture(entity.SpriteIndex, xx, projectedY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
