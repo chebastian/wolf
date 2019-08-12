@@ -58,17 +58,26 @@ float ReadChordRow(float x, float y)
 	return  maxx;
 }
 
-void WolfRender::DrawGameObject(GameObject entity)
-{
+float GetViewAngle(Raycaster caster, GameObject entity)
+{ 
 	auto pos = glm::vec2(entity.x, entity.y);
-	glm::vec2 dirToObject = pos - Caster->Origin;
+	glm::vec2 dirToObject = pos - caster.Origin;
 
-	auto lookingAngle = glm::atan(Caster->Direction.x, Caster->Direction.y);
+	auto lookingAngle = glm::atan(caster.Direction.x, caster.Direction.y);
 	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
 	auto viewAngle = glm::degrees(angleToObject - lookingAngle);
 	viewAngle = viewAngle > 0 ? viewAngle : 360 + viewAngle;
 	if (viewAngle > 180)
 		viewAngle -= 360;
+
+	return viewAngle;
+}
+
+
+void WolfRender::DrawGameObject(GameObject entity)
+{
+	auto pos = glm::vec2(entity.x, entity.y);
+	auto viewAngle = GetViewAngle(*Caster, entity);
 
 	float objectHeight = Level.WallHeight;
 	float objectWidth = 32.0f;
@@ -83,6 +92,8 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 
+	glm::vec2 dirToObject = pos - Caster->Origin;
+	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
 	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
 
