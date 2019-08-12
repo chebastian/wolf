@@ -84,8 +84,6 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float stepSize = Level.LevelRenderWidth / Caster->Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
-	float dotP = 1.0f - glm::dot(glm::normalize(Caster->Direction), dirToObject);
-
 	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
 
 	if (fr.w == 0 || fr.h == 0)
