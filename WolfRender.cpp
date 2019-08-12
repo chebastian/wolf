@@ -70,20 +70,21 @@ void WolfRender::DrawGameObject(GameObject entity)
 	if (viewAngle > 180)
 		viewAngle -= 360;
 
-	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
-
 	float objectHeight = Level.WallHeight;
 	float objectWidth = 32.0f;
+
 	float projectedDist = glm::distance(pos, Caster->Origin);
 	projectedDist *= cos(glm::radians(viewAngle));
 	float projectedHeight = Level.LevelRenderHeight * (objectHeight / projectedDist);
 	float projectedWidth = Level.LevelRenderHeight * (objectWidth / projectedDist);
-	float startY = 0;
-	float projectedY = (Renderer->Height() * 0.5) + ((projectedHeight * -0.5) + startY);
 
+	float startY = 0;
+	float projectedY = (Renderer->Height() * 0.5) + ((projectedHeight * -0.5) + startY); 
 	float stepSize = Level.LevelRenderWidth / Caster->Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
+
+	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
 
 	if (fr.w == 0 || fr.h == 0)
