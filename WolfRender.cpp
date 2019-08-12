@@ -16,24 +16,37 @@ Directions DegreestoDirection(int degrees)
 	return (Directions)deg;
 }
 
-WolfRender::WolfRender(IRenderer* renderer)
+WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 {
+	TextureReader = textureReader;
 	Renderer = renderer;
 	Animator = new AnimationPlayer();
-	reader = new LevelDataReader(LevelData());
-	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
-	RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
-	RegisterTexture(L"well.bmp", SpriteId::Id_Well);
-	RegisterTexture(L"wall.bmp", SpriteId::Id_Wall);
-	RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
-}
+	reader = new LevelDataReader(LevelData()); 
 
-void WolfRender::RegisterTexture(std::wstring path, UINT32 id)
-{
-	Win32OffscreenBuffer buffer;
-	Win32Helper::LoadBufferFromImage(&buffer, path.c_str());
-	Sprites[id] = buffer;
-}
+	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 }); 
+
+	auto sz = 3;
+	for (auto i = 0; i < sz; i++)
+	{
+		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Treasure + i, 2 + i });
+	}
+
+	auto aaa = SoldierAnimation();
+	std::vector<GameObject> soldiers;
+
+	std::copy_if(Level.Entitys.begin(), Level.Entitys.end(),
+		std::back_inserter(soldiers),
+		[&](GameObject object)
+		{
+			return object.SpriteIndex == SpriteId::Id_Soldier;
+		});
+
+	for (auto soldier : soldiers)
+	{
+		Animator->PlayAnimation(soldier.EntityId, aaa.WalkingForDirection(DegreestoDirection(90)));
+	}
+
+} 
 
 float ReadChordRow(float x, float y)
 {
@@ -68,21 +81,17 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float startY = 0;
 	float projectedY = (Renderer->Height() * 0.5) + ((projectedHeight * -0.5) + startY);
 
-	//debugPrint("dist: " + std::to_string(projectedDist));
 	float stepSize = Level.LevelRenderWidth / Caster->Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
 	float dotP = 1.0f - glm::dot(glm::normalize(Caster->Direction), dirToObject);
 
-	auto aaa = SoldierAnimation();
-	//Animator->PlayAnimation(entity.EntityId, aaa.WalkingForDirection(DegreestoDirection(angle))); 
 	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
 
-	auto spr = Sprites[entity.SpriteIndex];
 	if (fr.w == 0 || fr.h == 0)
 	{
-		fr.w = spr.Width;
-		fr.h = spr.Height;
+		fr.w = TextureReader->GetTextureWidth(entity.SpriteIndex);
+		fr.h = TextureReader->GetTextureHeight(entity.SpriteIndex);
 	}
 
 	if (abs(viewAngle) < 30)
@@ -93,15 +102,10 @@ void WolfRender::DrawGameObject(GameObject entity)
 			double u = i / projectedWidth;
 			if (Level.ZBuffer[(int)xx] > projectedDist)
 			{
-				//Win32DrawTexturedLine(buffer, sprBuffer, u, projectedDist, xx, projectedY + startY, projectedHeight);
-				//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
-
 				Renderer->DrawTexture(entity.SpriteIndex, xx, projectedY + startY, 1, projectedHeight, fr.x + u * fr.w, fr.y, fr.w, fr.h);
 			}
 		}
 	}
-
-	//Win32Helper::Win32DrawTexture(buffer, &SpriteMap[Spr_Map].Buffer, 10, 10, 128, 128, fr.x, fr.y, fr.w, fr.h);
 
 }
 
@@ -136,18 +140,11 @@ void WolfRender::DrawWalls(Raycaster* caster)
 
 
 		Level.ZBuffer[i] = distance;
-		//TODO fix, this should not be a arbitrary number
 		Renderer->DrawRect(i, 0, 1, bufferHeight, 0, 0, 0);
 
-		//Draw Wall strip
 		Renderer->DrawTexturedLine(SpriteId::Id_Wall, rayRes.TexCoord, distance, offsetX, wallStartY, actuallheight);
-		//Win32Helper::Win32DrawGradient(buffer, i, wallStartY + actuallheight, 1, buffer->Height - (wallStartY + actuallheight), { 128,128,128 });
 		Renderer->DrawGradient(i, wallStartY + actuallheight, 1, bufferHeight - (wallStartY + actuallheight), { 128,128,128 });
 	}
-
-	//Renderer->DrawRect(renderWidth * 0.5f, bufferHeight * 0.5, 2, 2, 255, 0, 0);
-	//Win32Helper::Win32DrawRect(
-
 
 	Animator->UpdatePlayer(0.05f);
 	DrawGameObjects(caster, Level.Entitys);

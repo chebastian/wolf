@@ -59,8 +59,10 @@ public:
 		RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Map);
 		RegisterTexture(L"treasure.bmp", SpriteId::Id_Treasure);
 		RegisterTexture(L"well.bmp", SpriteId::Id_Well);
-		RegisterTexture(L"wall.bmp", SpriteId::Id_Wall);
+		RegisterTexture(L"pillar.bmp", SpriteId::Id_Pillar);
+		RegisterTexture(L"barell.bmp", SpriteId::Id_Barell);
 		RegisterTexture(L"soldiermap.bmp", SpriteId::Id_Soldier);
+		RegisterTexture(L"wall.bmp", SpriteId::Id_Wall);
 	}
 
 	void RegisterTexture(std::wstring path, UINT32 id)
@@ -92,13 +94,13 @@ public:
 
 
 global_variable WolfRender* WolfDraw;
-global_variable IAnimationPlayer* Animator;
 global_variable std::shared_ptr<IMapReader> MapReader;
 global_variable std::vector<std::wstring> debugString;
 global_variable char* Keys;
 global_variable Raycaster Caster;
 
-global_variable Win32Renderer Renderer = Win32Renderer(new Win32TextureReader());
+global_variable Win32TextureReader TextureReader;
+global_variable Win32Renderer Renderer = Win32Renderer(&TextureReader);
 global_variable Win32OffscreenBuffer WallTexture;
 
 global_variable Win32OffscreenBuffer SoldierTexture;
@@ -302,7 +304,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			//Caster.Origin += keyDir * scalar; 
 			Caster.Origin.x = nextX;
 			Caster.Origin.y = nextY;
-		} 
+		}
 
 		if (IsKeyDown('k') || MouseClicked)
 		{
@@ -365,17 +367,17 @@ void DrawLevel(Win32OffscreenBuffer* buffer, LevelData level, int offsetx, int o
 void LoadWolfResources()
 {
 	MapReader = std::shared_ptr<IMapReader>(new LevelDataReader(LevelData()));
-	Animator = new AnimationPlayer();
-	WolfDraw = new WolfRender(&Renderer);
+	WolfDraw = new WolfRender(&Renderer,&TextureReader);
 	WolfDraw->Caster = &Caster;
-	WolfDraw->Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 });
+
+	//WolfDraw->Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 });
 
 
-	auto sz = 2;
-	for (auto i = 0; i < sz; i++)
-	{
-		WolfDraw->Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,2 + i });
-	}
+	//auto sz = 2;
+	//for (auto i = 0; i < sz; i++)
+	//{
+	//	WolfDraw->Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Well,2 + i });
+	//}
 }
 
 
@@ -580,7 +582,7 @@ void UpdateWin32Window(Win32OffscreenBuffer* buffer, HDC deviceContext, int x, i
 		DIB_RGB_COLORS, SRCCOPY);
 
 }
- 
+
 void RenderWeirdBkg(Win32OffscreenBuffer* buffer, int OffsetX, int OffsetY)
 {
 	UINT8* Pixel;
@@ -686,7 +688,7 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}break;
 	}
 }
- 
+
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 {
 	int deg = degrees;

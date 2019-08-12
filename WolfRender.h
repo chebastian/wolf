@@ -12,22 +12,19 @@ class IAnimationPlayer;
 class WolfRender
 {
 public:
-	WolfRender(IRenderer* renderer);
+	WolfRender(IRenderer* renderer,ITextureReader* textureReader);
 	void DrawGameObject(GameObject entity);
 	void DrawWalls(Raycaster* caster);
-	//void DrawGameObjects(Raycaster* caster);
 	void DrawGameObjects(Raycaster* caster, std::vector<GameObject> entities);
 
 	IRenderer* Renderer;
 	Raycaster* Caster;
 	LevelData Level;
-	std::map<UINT32, Win32OffscreenBuffer> Sprites;
-	Win32OffscreenBuffer WallTexture;
 	IAnimationPlayer* Animator;
 private:
-	void RegisterTexture(std::wstring path, UINT32 id);
 
 	IMapReader* reader;
+	ITextureReader* TextureReader;
 	const float renderWidth = 480.0f;
 	const float renderHeight = 16.0f;
 	const float wallHeight = 32.0f;
