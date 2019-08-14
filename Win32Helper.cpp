@@ -41,7 +41,8 @@ void Win32Renderer::DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UI
 		}
 
 		Row += OffscreenBuffer.Pitch;
-	} 
+	}
+
 }
 
 void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int OffsetX, int OffsetY, int h)

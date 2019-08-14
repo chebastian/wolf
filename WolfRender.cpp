@@ -73,6 +73,21 @@ float GetViewAngle(Raycaster caster, GameObject entity)
 	return viewAngle;
 }
 
+Frame GetFrameInDirection(IAnimationPlayer* Animator,ITextureReader* TextureReader, GameObject entity, Raycaster* Caster)
+{
+	glm::vec2 dirToObject = glm::vec2(entity.x,entity.y) - Caster->Origin;
+	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
+	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
+	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
+
+	if (fr.w == 0 || fr.h == 0)
+	{
+		fr.w = TextureReader->GetTextureWidth(entity.SpriteIndex);
+		fr.h = TextureReader->GetTextureHeight(entity.SpriteIndex);
+	}
+
+	return fr;
+}
 
 void WolfRender::DrawGameObject(GameObject entity)
 {
@@ -91,17 +106,7 @@ void WolfRender::DrawGameObject(GameObject entity)
 	float stepSize = Level.LevelRenderWidth / Caster->Fov;
 	float projectedX = (Level.LevelRenderWidth * 0.5f) + (-viewAngle * stepSize);
 
-
-	glm::vec2 dirToObject = pos - Caster->Origin;
-	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
-	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
-	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
-
-	if (fr.w == 0 || fr.h == 0)
-	{
-		fr.w = TextureReader->GetTextureWidth(entity.SpriteIndex);
-		fr.h = TextureReader->GetTextureHeight(entity.SpriteIndex);
-	}
+	Frame fr = GetFrameInDirection(Animator, TextureReader, entity, Caster);
 
 	if (abs(viewAngle) < 30)
 	{

@@ -688,7 +688,6 @@ void Win32UpdateKeyState(WPARAM wParam, bool isDown)
 	}break;
 	}
 }
-
 Win32OffscreenBuffer* GetAngleSprite(int degrees, Sprite* spr)
 {
 	int deg = degrees;
