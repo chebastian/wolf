@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "WolfData.h"
 
+
 class IRenderer
 {
 public:

@@ -8,6 +8,8 @@
 #include "RayCaster.h"
 
 class IAnimationPlayer;
+class Animation;
+class AnimationMap;
 
 class WolfRender
 {
@@ -25,6 +27,7 @@ private:
 
 	IMapReader* reader;
 	ITextureReader* TextureReader;
+	AnimationMap* SoldierAnim;
 	const float renderWidth = 480.0f;
 	const float renderHeight = 16.0f;
 	const float wallHeight = 32.0f;

@@ -1,7 +1,7 @@
 #include "Win32Helper.h"
 #include "SpriteId.h"
 #include "Interfaces.h"
-
+ 
 
 HWND Win32Helper::WindowHandle = 0;
 
@@ -32,7 +32,7 @@ void Win32Renderer::DrawRect(int OffsetX, int OffsetY, int w, int h, UINT8 r, UI
 
 	for (auto y = 0; y < h; y++)
 	{
-		Pixel = (UINT32*)Row;
+		Pixel = (UINT32*)Row; 
 		Pixel += (OffsetX);
 		for (auto x = 0; x < w; x++)
 		{
@@ -83,7 +83,7 @@ void Win32Renderer::DrawTexturedLine(int textureId, double u, double dist, int O
 		auto textureOffset = inTextureY * texHeight;
 		TexturePixel = (UINT32*)TextureColumn + textureOffset;
 		if (*TexturePixel != 0xFF00Ff)
-			* Pixel = (UINT32)((*TexturePixel));
+		* Pixel = (UINT32)((*TexturePixel));
 		Row += OffscreenBuffer.Pitch;
 	}
 

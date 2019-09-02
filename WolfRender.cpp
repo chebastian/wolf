@@ -24,14 +24,20 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 	reader = new LevelDataReader(LevelData()); 
 
 	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 }); 
+	Level.Entitys.push_back({ 2.0f, 5.0f,0.0f, 1.0f, SpriteId::Id_Soldier,2 }); 
 
 	auto sz = 3;
 	for (auto i = 0; i < sz; i++)
 	{
-		Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Treasure + i, 2 + i });
+		//Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Treasure + i, 2 + i });
 	}
 
-	auto aaa = SoldierAnimation();
+	this->SoldierAnim = new SoldierAnimation();
+	Animator->RegisterAnimationMap(SoldierAnim,1);
+	Animator->RegisterAnimationMap(SoldierAnim,2);
+	Animator->PlayAnimation(1, AnimationType::WALK);
+	Animator->PlayAnimation(2, AnimationType::STAND);
+
 	std::vector<GameObject> soldiers;
 
 	std::copy_if(Level.Entitys.begin(), Level.Entitys.end(),
@@ -41,10 +47,10 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 			return object.SpriteIndex == SpriteId::Id_Soldier;
 		});
 
-	for (auto soldier : soldiers)
-	{
-		Animator->PlayAnimation(soldier.EntityId, aaa.WalkingForDirection(DegreestoDirection(90)));
-	}
+	//for (auto soldier : soldiers)
+	//{
+	//	Animator->PlayAnimation(soldier.EntityId, AnimationType::WALK);
+	//}
 
 } 
 
@@ -73,12 +79,34 @@ float GetViewAngle(Raycaster caster, GameObject entity)
 	return viewAngle;
 }
 
+Directions MapIntToDirection(const int dir)
+{
+	std::map<int,Directions> dirs
+	{
+		{0,Directions::S},
+		{1,Directions::SW},
+		{2,Directions::W},
+		{3,Directions::NW},
+		{4,Directions::N},
+		{5,Directions::NE},
+		{6,Directions::E},
+	};
+
+	return dirs[dir];
+}
+
 Frame GetFrameInDirection(IAnimationPlayer* Animator,ITextureReader* TextureReader, GameObject entity, Raycaster* Caster)
 {
 	glm::vec2 dirToObject = glm::vec2(entity.x,entity.y) - Caster->Origin;
 	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
 	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
+	
 	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
+
+	//if (Animator->GetAnimation(entity.EntityId))
+	{
+
+	}
 
 	if (fr.w == 0 || fr.h == 0)
 	{
@@ -147,7 +175,7 @@ void WolfRender::DrawWalls(Raycaster* caster)
 		float correction = cos(angle);
 		RayResult rayRes = Ray.RayDistance(reader, caster->Origin.x, caster->Origin.y, dir.x, dir.y);
 		rayRes.TexCoord = ReadChordRow(rayRes.HitX, rayRes.HitY);
-		float distance = rayRes.Distance * correction;
+		float distance = rayRes.Distance * correction ;
 		float actuallheight = renderHeight * (wallH / distance);
 		float wallStartY = startY + bufferHeight * 0.5 + (actuallheight * -0.5);
 		float offsetX = i;

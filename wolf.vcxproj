@@ -154,6 +154,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AnimationPlayer.h" />
+    <ClInclude Include="Directions.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Interfaces.h" />
     <ClInclude Include="LevelDataReader.h" />
@@ -168,6 +169,7 @@
     <ClInclude Include="WolfRender.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationPlayer.cpp" />
     <ClCompile Include="Win32Helper.cpp" />
     <ClCompile Include="wolf.cpp" />
     <ClCompile Include="WolfData.cpp" />
