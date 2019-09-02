@@ -26,7 +26,7 @@ public:
 struct SoldierAnimation : AnimationMap
 {
 	std::vector<Animation> Animations;
-	std::map<Directions, Animation> _anim;
+	std::map<Directions, Animation> _walk;
 	std::map<Directions, Animation> _stand;
 	std::map<AnimationType, Animation> other;
 
@@ -38,7 +38,7 @@ struct SoldierAnimation : AnimationMap
 		} 
 
 		if(type == AnimationType::WALK)
-			return &_anim[*dir];
+			return &_walk[*dir];
 
 		return &other[type];
 	}
@@ -47,9 +47,6 @@ struct SoldierAnimation : AnimationMap
 	{
 		int animationWidth = 64;
 		int animationheight = 64;
-
-
-		Animation stand		=		Animation::CreateWithFrames(0, 0, animationWidth, animationheight, 1, 1, 1, 0, 8);
 
 		_stand[Directions::S]	=		Animation::SingleFrame(0,0,animationWidth,animationheight,1,1);
 		_stand[Directions::SW]	=		Animation::SingleFrame(1,0,animationWidth,animationheight,1,1);
@@ -60,20 +57,15 @@ struct SoldierAnimation : AnimationMap
 		_stand[Directions::E]	=		Animation::SingleFrame(6,0,animationWidth,animationheight,1,1);
 		_stand[Directions::SE]	=		Animation::SingleFrame(0,0,animationWidth,animationheight,1,1);
 
-		_anim[Directions::S] 	=		Animation::CreateWithFrames(0, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::SW]	=		Animation::CreateWithFrames(1, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::W] 	=		Animation::CreateWithFrames(2, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::NW]	=		Animation::CreateWithFrames(3, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::N] 	=		Animation::CreateWithFrames(4, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::NE]	=		Animation::CreateWithFrames(5, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::E] 	=		Animation::CreateWithFrames(6, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-		_anim[Directions::SE]	=		Animation::CreateWithFrames(7, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
-
-
-		Animation hit		=			Animation::CreateWithFrames(6, 7, animationWidth, animationheight, 1, 1, 0, 1, 1);
-		Animation shoot		=			Animation::CreateWithFrames(0, 7, animationWidth, animationheight, 1, 1, 1, 0, 3);
-		Animation death		=			Animation::CreateWithFrames(0, 6, animationWidth, animationheight, 1, 1, 1, 0, 3); 
-
+		_walk[Directions::S] 	=		Animation::CreateWithFrames(0, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::SW]	=		Animation::CreateWithFrames(1, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::W] 	=		Animation::CreateWithFrames(2, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::NW]	=		Animation::CreateWithFrames(3, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::N] 	=		Animation::CreateWithFrames(4, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::NE]	=		Animation::CreateWithFrames(5, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::E] 	=		Animation::CreateWithFrames(6, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+		_walk[Directions::SE]	=		Animation::CreateWithFrames(7, 1, animationWidth, animationheight, 1, 1, 0, 1, 4);
+ 
 		other[AnimationType::DEATH] =	Animation::CreateWithFrames(0, 5, animationWidth, animationheight, 1, 1, 1, 0, 5); 
 		other[AnimationType::DEAD] =	Animation::CreateWithFrames(4, 5, animationWidth, animationheight, 1, 1, 1, 0, 1); 
 		other[AnimationType::FIRE] =	Animation::CreateWithFrames(0, 6, animationWidth, animationheight, 1, 1, 1, 0, 3); 
