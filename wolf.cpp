@@ -269,14 +269,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		if (IsKeyDown('w'))
 		{
 			keyDir += Caster.Direction;
-			//Caster.Origin.y += Caster.Direction.y * scalar;
-			//Caster.Origin.x += Caster.Direction.x * scalar;
 		}
 		if (IsKeyDown('s'))
 		{
 			keyDir -= Caster.Direction;
-			//Caster.Origin.y += -Caster.Direction.y * scalar;
-			//Caster.Origin.x += -Caster.Direction.x * scalar;
 		}
 		if (IsKeyDown('d'))
 		{

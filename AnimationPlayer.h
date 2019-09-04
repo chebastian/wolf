@@ -102,7 +102,7 @@ class IAnimationPlayer
 {
 public:
 	virtual void PlayAnimation(int id, AnimationType type) = 0;
-	virtual Frame GetCurrentFrame(int id, Directions dir) = 0;
+	virtual Frame GetCurrentFrame(int id, int sprIdx, Directions dir) = 0;
 	virtual void UpdatePlayer(float time) = 0;
 	virtual void RegisterAnimationMap(AnimationMap* map, int entityid) = 0;
 	//virtual Animation* GetAnimation(int id) = 0;
@@ -143,9 +143,10 @@ public:
 		ActiveType[id] = type;
 	}
 
-	void RegisterIdRange(int start, int sz, SpriteId id)
+	void RegisterIdRange(int start, int sz, AnimationMap* map)
 	{
-		SpriteMap.push_back({ start,sz,id});
+		//SpriteMap.push_back({ start,sz,id});
+		//RegisterAnimationMap(map, id);
 	} 
 
 	void RegisterAnimationMap(AnimationMap* map, int spriteId) override
@@ -153,17 +154,13 @@ public:
 		AnimationMaps[spriteId] = map;
 	}
 
-	Frame GetCurrentFrame(int entityId, Directions dir)
+	Frame GetCurrentFrame(int entityId, int sprIdx, Directions dir)
 	{
-		auto sprId = SpriteIdForEntity(entityId);
-		auto hasKey = AnimationMaps.find(sprId) != AnimationMaps.end(); 
-		if (!hasKey)
-			throw std::exception("no animations with sprite id" + sprId);
+		auto found = AnimationMaps.find(sprIdx) != AnimationMaps.end();
+		if (!found) 
+			throw std::exception("No Animation map registered for spriteId" + sprIdx);
 
-		auto found = AnimationMaps.find(sprId) != AnimationMaps.end();
-		if (!found)
-			throw std::exception("No Animation map registered for spriteId" + sprId);
-		auto theanim = AnimationMaps[sprId]->GetAnimation(ActiveType[entityId], &dir);
+		auto theanim = AnimationMaps[sprIdx]->GetAnimation(ActiveType[entityId], &dir);
 		return theanim->GetFrame(((int)Elapsed) % theanim->Length());
 	}
 

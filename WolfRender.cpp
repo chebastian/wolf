@@ -35,14 +35,14 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 	this->SoldierAnim = new SoldierAnimation();
 	StaticSprites = new SpritesMap();
 
-	anim->RegisterIdRange(0, 100, SpriteId::Id_Soldier);
-	anim->RegisterIdRange(100, 100, SpriteId::Id_Barell);
-
-	anim->RegisterAnimationMap(StaticSprites,SpriteId::Id_Barell);
-	anim->RegisterAnimationMap(SoldierAnim,SpriteId::Id_Soldier);
+	anim->RegisterAnimationMap(SoldierAnim,   SpriteId::Id_Soldier);
+	anim->RegisterAnimationMap(StaticSprites, SpriteId::Id_Treasure);
+	anim->RegisterAnimationMap(StaticSprites, SpriteId::Id_Barell);
+	anim->RegisterAnimationMap(StaticSprites, SpriteId::Id_Pillar);
+	anim->RegisterAnimationMap(StaticSprites, SpriteId::Id_Well);
 
 	anim->PlayAnimation(1, AnimationType::WALK);
-	anim->PlayAnimation(2, AnimationType::STAND);
+	anim->PlayAnimation(2, AnimationType::DEAD);
 
 	std::vector<GameObject> soldiers;
 
@@ -103,18 +103,13 @@ Frame GetFrameInDirection(IAnimationPlayer* Animator,ITextureReader* TextureRead
 	auto angleToObject = glm::atan(dirToObject.x, dirToObject.y);
 	int angle = glm::degrees(angleToObject - glm::atan(entity.dx, entity.dy));
 	
-	Frame fr = Animator->GetCurrentFrame(entity.EntityId, DegreestoDirection(angle));
+	Frame fr = Animator->GetCurrentFrame(entity.EntityId,entity.SpriteIndex, DegreestoDirection(angle)); 
 
-	//if (Animator->GetAnimation(entity.EntityId))
-	{
-
-	}
-
-	if (fr.w == 0 || fr.h == 0)
-	{
-		fr.w = TextureReader->GetTextureWidth(entity.SpriteIndex);
-		fr.h = TextureReader->GetTextureHeight(entity.SpriteIndex);
-	}
+	//if (fr.w == 0 || fr.h == 0)
+	//{
+	//	fr.w = TextureReader->GetTextureWidth(entity.SpriteIndex);
+	//	fr.h = TextureReader->GetTextureHeight(entity.SpriteIndex);
+	//}
 
 	return fr;
 }
