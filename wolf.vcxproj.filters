@@ -60,6 +60,9 @@
     <ClInclude Include="Directions.h">
       <Filter>Enum</Filter>
     </ClInclude>
+    <ClInclude Include="SoldierEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wolf.cpp">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AnimationPlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SoldierEntity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

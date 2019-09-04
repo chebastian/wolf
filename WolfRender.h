@@ -28,6 +28,7 @@ private:
 	IMapReader* reader;
 	ITextureReader* TextureReader;
 	AnimationMap* SoldierAnim;
+	AnimationMap* StaticSprites;
 	const float renderWidth = 480.0f;
 	const float renderHeight = 16.0f;
 	const float wallHeight = 32.0f;

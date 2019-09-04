@@ -160,6 +160,7 @@
     <ClInclude Include="LevelDataReader.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SoldierEntity.h" />
     <ClInclude Include="SpriteAnimation.h" />
     <ClInclude Include="SpriteId.h" />
     <ClInclude Include="targetver.h" />
@@ -170,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnimationPlayer.cpp" />
+    <ClCompile Include="SoldierEntity.cpp" />
     <ClCompile Include="Win32Helper.cpp" />
     <ClCompile Include="wolf.cpp" />
     <ClCompile Include="WolfData.cpp" />

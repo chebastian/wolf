@@ -20,7 +20,7 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 {
 	TextureReader = textureReader;
 	Renderer = renderer;
-	Animator = new AnimationPlayer();
+	auto anim = new AnimationPlayer();
 	reader = new LevelDataReader(LevelData()); 
 
 	Level.Entitys.push_back({ 3.0f, 2.0f,0.0f, 1.0f, SpriteId::Id_Soldier,1 }); 
@@ -29,14 +29,20 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 	auto sz = 3;
 	for (auto i = 0; i < sz; i++)
 	{
-		//Level.Entitys.push_back({ 4.0f,(0.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Treasure + i, 2 + i });
+		Level.Entitys.push_back({ 4.0f,(1.5f * i) + 4.0f,0.0f, 1.0f,SpriteId::Id_Barell, 100 + i });
 	}
 
 	this->SoldierAnim = new SoldierAnimation();
-	Animator->RegisterAnimationMap(SoldierAnim,1);
-	Animator->RegisterAnimationMap(SoldierAnim,2);
-	Animator->PlayAnimation(1, AnimationType::WALK);
-	Animator->PlayAnimation(2, AnimationType::STAND);
+	StaticSprites = new SpritesMap();
+
+	anim->RegisterIdRange(0, 100, SpriteId::Id_Soldier);
+	anim->RegisterIdRange(100, 100, SpriteId::Id_Barell);
+
+	anim->RegisterAnimationMap(StaticSprites,SpriteId::Id_Barell);
+	anim->RegisterAnimationMap(SoldierAnim,SpriteId::Id_Soldier);
+
+	anim->PlayAnimation(1, AnimationType::WALK);
+	anim->PlayAnimation(2, AnimationType::STAND);
 
 	std::vector<GameObject> soldiers;
 
@@ -47,11 +53,7 @@ WolfRender::WolfRender(IRenderer* renderer, ITextureReader* textureReader)
 			return object.SpriteIndex == SpriteId::Id_Soldier;
 		});
 
-	//for (auto soldier : soldiers)
-	//{
-	//	Animator->PlayAnimation(soldier.EntityId, AnimationType::WALK);
-	//}
-
+	Animator = anim; 
 } 
 
 float ReadChordRow(float x, float y)
